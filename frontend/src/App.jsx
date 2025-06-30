@@ -7,7 +7,7 @@ function App() {
   
 
   return (
-    <div>
+    <div className='bg-primary'>
       <Header/>
       <Routes>    
        <Route path="/" element={<HomePage/>} />
