@@ -1,4 +1,5 @@
 import BrowseCategoriesSection from '../components/BrowseCategoriesSection'
+import DiscoverMoreNFTsSection from '../components/DiscoverMoreNFTsSection'
 import Herosection from '../components/Herosection'
 import RegularPageWrapper from '../components/RegularPageWrapper'
 import TopCreatorsSection from '../components/TopCreatorsSection'
@@ -11,6 +12,7 @@ const HomePage = () => {
       <TrendingCollectionSection />
       <TopCreatorsSection />
       <BrowseCategoriesSection />
+      <DiscoverMoreNFTsSection />
     </RegularPageWrapper>
   )
 }

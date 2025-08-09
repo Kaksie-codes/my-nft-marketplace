@@ -21,7 +21,7 @@ const TopCreatorsSection = () => {
   ];
   return (
     <div className="mt-[80px]">
-      <div className="max-w-6xl mx-auto container ">
+      <div className="max-w-6xl mx-auto container">
         <div className="flex justify-between items-end">
             <div>
                 <h2 className="text-main font-bold text-4xl">Top Creators</h2>
