@@ -1,5 +1,6 @@
 import Herosection from '../components/Herosection'
 import RegularPageWrapper from '../components/RegularPageWrapper'
+import TopCreatorsSection from '../components/TopCreatorsSection'
 import TrendingCollectionSection from '../components/TrendingCollectionSection'
 
 const HomePage = () => {
@@ -7,6 +8,7 @@ const HomePage = () => {
     <RegularPageWrapper>
       <Herosection />
       <TrendingCollectionSection />
+      <TopCreatorsSection/>
     </RegularPageWrapper>
   )
 }

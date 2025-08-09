@@ -4,7 +4,7 @@ import Spinner from '../loaders/Spinner';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   rtl?: boolean;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'outline';
   children: ReactNode;
   sx?: React.CSSProperties;
   sxclass?: string;
@@ -44,7 +44,7 @@ const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       className={` ${size === 'sm' ? 'h-[30px] rounded-[8px]' : size === 'md' ? ' h-[40px] rounded-[10px]'  : size === 'lg' ? ' h-[54px] rounded-[14px]' : ''}
         font-bold  text-[15px] inline-flex gap-2 items-center justify-center transition duration-150 
-        ${variant === 'primary' ? 'bg-primary text-white hover:bg-[#5800D0]' : ''}
+        ${variant === 'primary' ? 'bg-primary text-white hover:bg-[#5800D0]' : variant === 'outline' ? 'bg-transparent text-main border border-primary hover:bg-primary hover:text-white' : ''}
         ${rtl ? 'flex-row-reverse' : ''} 
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''} 
         ${sticky ? 'fixed bottom-4 left-8 right-8 z-10 md:sticky' : ''}

@@ -3,7 +3,7 @@ import TrendingCollectionCard from "./TrendingCollectionCard"
 
 const TrendingCollectionSection = () => {
   return (
-    <div className="mt-[50px]">
+    <div className="mt-[80px]">
       <div className="max-w-6xl mx-auto container ">
         <h2 className="text-main font-bold text-4xl">Trending Collections</h2>
         <p className="text-main text-xl">Checkout our weekly updated trending collections.</p>
