@@ -2,7 +2,7 @@ import Button from "./button/Button"
 
 const Herosection = () => {
   return (
-    <div className=" text-white">
+    <div className="">
         <section className="max-w-6xl mx-auto container py-[50px] px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="max-w-[500px] flex flex-col gap-[20px]">
                 <h1 className="text-6xl font-extrabold text-main">

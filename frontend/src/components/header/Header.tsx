@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Menu,
@@ -22,6 +22,15 @@ import Button from '../button/Button';
 import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 200);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -94,7 +103,7 @@ const Header: React.FC = () => {
  
   return (
     <>
-      <header className="sticky top-0 z-40">
+  <header className={`sticky top-0 z-40 bg-background transition-all duration-300 ${scrolled ? 'shadow-lg border-b border-gray-200 dark:border-gray-700' : ''}`}> 
         <div className="max-w-7xl mx-auto container px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo/>

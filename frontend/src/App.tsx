@@ -9,7 +9,7 @@ function App() {
 
 
   return (
-    <div className='bg-background h-screen'>
+    <div className='bg-background pb-[20px]'>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
