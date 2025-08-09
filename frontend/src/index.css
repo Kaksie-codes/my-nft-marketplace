@@ -1,3 +1,51 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #F5F5F5;
+    --surface: #FFFFFF;
+    --primary: #7B2FF9;
+    --text-primary: #1A1A1A;
+    --text-secondary: #555555;
+    --overlay: rgba(0, 0, 0, 0.3);
+    --modal-background: #FFFFFF;
+  }
+
+  .dark {
+    --background: #2B2B2B;
+    --surface: #3B3B3B;
+    --primary: #A259FF;
+    --text-primary: #FFFFFF;
+    --text-secondary: #CCCCCC;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --modal-background: #1E1E1E;
+  }
+}
+
+html, * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background); /* <thumb> <track> */
+}
+
+*::-webkit-scrollbar {
+  width: 0.5em;
+  height: 0.2em;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--background);
+  padding: 3px;
+  box-shadow: none;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 20px;
+  box-shadow: 0 0 10px rgba(0 0 0 / 17%);
+}
+
+@layer utilities {
+  /* Custom utilities if needed */
+}
