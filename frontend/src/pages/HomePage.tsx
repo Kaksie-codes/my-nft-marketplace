@@ -1,3 +1,4 @@
+import BrowseCategoriesSection from '../components/BrowseCategoriesSection'
 import Herosection from '../components/Herosection'
 import RegularPageWrapper from '../components/RegularPageWrapper'
 import TopCreatorsSection from '../components/TopCreatorsSection'
@@ -8,7 +9,8 @@ const HomePage = () => {
     <RegularPageWrapper>
       <Herosection />
       <TrendingCollectionSection />
-      <TopCreatorsSection/>
+      <TopCreatorsSection />
+      <BrowseCategoriesSection />
     </RegularPageWrapper>
   )
 }
