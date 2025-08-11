@@ -16,6 +16,7 @@ interface InputProps {
   additionalStyles?: string;
   maxlength?: number;
   bgColor?: string;
+  inputSmall?: boolean;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -29,7 +30,8 @@ const Input: React.FC<InputProps> = ({
   forgotpass,
   additionalStyles = "",
   maxlength,
-  bgColor
+  bgColor,
+  inputSmall = false
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -93,7 +95,7 @@ const Input: React.FC<InputProps> = ({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
             type={type === "password" && showPassword ? "text" : type}
-            className={`w-full h-[54px] ${bgColor ? bgColor : 'bg-white'} text-black px-4 rounded-lg outline-none  ${isFocused || hasValue ? "pt-4" : ""}`}
+            className={`w-full ${inputSmall ? 'h-full' : 'h-[54px]'} ${bgColor ? bgColor : 'bg-white'} text-black px-4 rounded-lg outline-none  ${isFocused || hasValue ? "pt-4" : ""}`}
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
