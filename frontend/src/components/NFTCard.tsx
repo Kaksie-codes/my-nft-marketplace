@@ -1,7 +1,3 @@
-
-
-
-
 interface NFTCardProps {
   image: string;
   title: string;

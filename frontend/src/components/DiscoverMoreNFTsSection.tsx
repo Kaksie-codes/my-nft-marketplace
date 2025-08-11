@@ -1,6 +1,7 @@
 import { Eye } from "lucide-react"
 import Button from "./button/Button"
 import NFTCard from "./NFTCard"
+// import NewNFTCard from "./NewNFTCard"
 
 const DiscoverMoreNFTsSection = () => {
   const nfts = [
@@ -29,6 +30,25 @@ const DiscoverMoreNFTsSection = () => {
       highestBid: '0.08 ETH',
     },
   ];
+
+  // let newNfts = [
+  //   {
+  //     image: '/nft-1.png',
+  //     title: 'Chobok Girls',
+  //     count: 9,
+  //     creator: { name: 'Anima Kid', age: 12 }
+  //   },
+  //   {
+  //     image: '/nft-2.png',
+  //     title: 'Galactic Dog',
+  //     count: 5
+  //   },
+  //   {
+  //     image: '/nft-3.png',
+  //     title: 'Pixel Pro',
+  //     count: 4
+  //   }
+  // ]
   return (
     <div className="mt-[80px]">
       <div className="max-w-6xl mx-auto container">
@@ -49,6 +69,33 @@ const DiscoverMoreNFTsSection = () => {
             </Button>
         </div>
           <div className="mt-[40px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[20px]">
+            {/* {
+              newNfts.map((nft, idx) => (
+                <NewNFTCard
+                  key={nft.title + idx}
+                  image={nft.image}
+                  title={nft.title}
+                  count={nft.count}
+                  creator={nft.creator}
+                />
+              ))
+            } */}
+           {/* <NewNFTCard
+           title={'Chobok Girls'}
+           image='/nft-1.png'
+           count={9}
+           creator={{name: 'Anima Kid', age: 12}}
+            />
+           <NewNFTCard
+           image={'/nft-2.png'}
+           title={'Galactic Dog'}
+           count={5}
+           />
+           <NewNFTCard
+           image={'/nft-3.png'}
+           title={'Pixel Pro'}
+           count={4}
+           /> */}
             {nfts.map((nft, idx) => (
               <NFTCard
                 key={nft.title + idx}
@@ -58,7 +105,6 @@ const DiscoverMoreNFTsSection = () => {
                 creatorName={nft.creatorName}
                 price={nft.price}
                 highestBid={nft.highestBid}
-                // No backgroundColor prop, will use default
               />
             ))}
           </div>
