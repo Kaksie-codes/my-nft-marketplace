@@ -23,10 +23,10 @@ const SlidingTabs: React.FC<SlidingTabsProps> = ({ tabs, active, onChange }) => 
           onClick={() => onChange(idx)}
           style={{ minWidth: 0 }}
         >
-          <span className="truncate flex items-center gap-2">
-            {tab.label}
+          <span className="flex items-center justify-center gap-3 w-full">
+            <span className="truncate">{tab.label}</span>
             <span
-              className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full ml-1 transition-colors
+              className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full transition-colors
                 ${active === idx ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 text-main'}`}
             >
               {tab.count}
