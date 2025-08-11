@@ -6,7 +6,7 @@ import Logo from './Logo';
 
 const Footer = () => {
   return (
-    <footer className="bg-surface pt-12 pb-4 px-4 mt-16">
+    <footer className="bg-surface pt-12 pb-4 px-4 border-t border-muted">
       <div className="container border-b border-muted max-w-6xl pb-10 mx-auto flex flex-col md:flex-row justify-between gap-10 md:gap-0">
         {/* Column 1: Logo, desc, socials */}
         <div className="flex-1 mb-8 md:mb-0 flex flex-col gap-4">

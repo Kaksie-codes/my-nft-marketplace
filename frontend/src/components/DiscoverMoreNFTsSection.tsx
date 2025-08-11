@@ -58,6 +58,7 @@ const DiscoverMoreNFTsSection = () => {
                 creatorName={nft.creatorName}
                 price={nft.price}
                 highestBid={nft.highestBid}
+                // No backgroundColor prop, will use default
               />
             ))}
           </div>
