@@ -2,7 +2,7 @@ import NewsletterInput from "./inputs/NewsletterInput";
 
 const NewsLetterSection = () => {
   return (
-    <div className='mt-[70px]'>
+    <div className='my-[70px]'>
       <div className="max-w-6xl mx-auto container">
         <div className="w-full flex gap-8 justify-between p-8 items-center  rounded-[20px]  bg-surface">
             <div>
