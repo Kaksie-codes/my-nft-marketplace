@@ -48,8 +48,30 @@ const Profile = () => {
         <div className="container max-w-6xl flex flex-col md:flex-row md:items-end gap-6 mt-24 md:mt-32">
           {/* Left: Name, @, Stats, Bio, Links */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-main font-extrabold text-4xl leading-tight">Jack Smith</h1>
-            <div className="text-muted text-lg font-mono mb-2">@jacksmith</div>
+            <div className='flex justify-between items-center'>
+                <div>
+                    <h1 className="text-main font-extrabold text-4xl leading-tight">Jack Smith</h1>
+                    <div className="text-muted text-lg font-mono mb-2">@jacksmith</div>
+                </div>
+                <div className="flex  gap-4 items-center ">
+                    <Button
+                        size='md'
+                        variant='primary'
+                        sxclass='px-6 flex items-center gap-2'
+                        icon={<Copy size={18} />}
+                    >
+                    {formatWalletAddress('0x1234567890abcdef1234567890abcdef1234')}
+                    </Button>
+                    <Button
+                        size='md'
+                        variant='outline'
+                        sxclass='px-6 flex items-center gap-2'
+                        icon={<UserPlus size={18} />}
+                    >
+                    Follow
+                    </Button>
+                </div>
+            </div>
             {/* Stats */}
             <div className="flex gap-8 mt-4 mb-4 flex-wrap">
               <div className="flex flex-col min-w-[90px]">
@@ -79,26 +101,7 @@ const Profile = () => {
                 <a href="#" className="text-muted hover:text-primary" aria-label="Instagram"><Instagram size={24} /></a>
               </div>
             </div>
-          </div>
-          {/* Right: Wallet and Follow Buttons */}
-          <div className="flex flex-col gap-4 md:items-end md:justify-end">
-            <Button
-              size='md'
-              variant='primary'
-              sxclass='px-6 flex items-center gap-2'
-              icon={<Copy size={18} />}
-            >
-              {formatWalletAddress('0x1234567890abcdef1234567890abcdef1234')}
-            </Button>
-            <Button
-              size='md'
-              variant='outline'
-              sxclass='px-6 flex items-center gap-2'
-              icon={<UserPlus size={18} />}
-            >
-              Follow
-            </Button>
-          </div>
+          </div>         
         </div>
 
         {/* Sliding Tabs Section */}
