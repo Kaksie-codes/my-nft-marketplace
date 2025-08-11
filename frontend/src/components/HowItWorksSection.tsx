@@ -4,18 +4,18 @@ const HowItWorksSection = () => {
   const steps = [
     {
       image: '/setup-wallet.png',
-      step: 'Step 1',
+      step: 'Setup Your wallet',
       description: 'Set up your wallet of choice. Connect it to the Animarket by clicking the wallet icon in the top right corner.',
     },
     {
       image: '/create-collection.png',
-      step: 'Step 2',
-      description: 'Create your NFT collection. Add social links, a description, profile & banner images, and set a secondary sales fee.',
+      step: 'Create Your NFT Collection',
+      description: 'Upload your work and setup your collection. Add a description, social links and floor price.',
     },
     {
-      image: '/start-selling.png',
-      step: 'Step 3',
-      description: 'Upload your work, add a title and description, and list them for sale as fixed price or auction.',
+      image: '/start-earning.png',
+      step: 'Start Earning',
+      description: 'Choose between auctions and fixed-price listings. Start earning by selling your NFTs or trading others.',
     },
   ];
   return (
@@ -23,7 +23,7 @@ const HowItWorksSection = () => {
       <div className="max-w-6xl mx-auto container">
         <h2 className='text-main font-bold text-4xl'>How It Works</h2>
         <p className='text-main text-xl'>
-          Learn how to buy, sell, and create NFTs in our marketplace.
+          Find out how to get started with our NFT marketplace.
         </p>
         <div className="mt-[40px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[20px]">
           {steps.map((step, idx) => (
