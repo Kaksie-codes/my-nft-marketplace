@@ -4,10 +4,11 @@
 
 import Avatar from '../components/avatar';
 import Button from '../components/button/Button';
-import { Globe, Clock } from 'lucide-react';
+import { Globe, Clock, ArrowRight } from 'lucide-react';
 import { useRef } from 'react';
 import FlipCountdown from '../components/FlipCountdown';
 import RegularPageWrapper from '../components/RegularPageWrapper';
+import NFTCard from '../components/NFTCard';
 
 const NFTDetail = () => {
   // Dummy data for demonstration
@@ -110,11 +111,11 @@ For more information about the artist and the Galactic series, visit the officia
               <div className="mb-6">
                 <h2 className="text-lg font-bold text-muted mb-1">Details</h2>
                 <div className="flex flex-col gap-2">
-                  <a href={nft.details.etherscan} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-muted hover:text-primary hover:underline">
-                    <Globe size={16} /> View on Etherscan
+                  <a href={nft.details.etherscan} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-main hover:text-primary hover:underline">
+                    <Globe size={16} className='text-muted'/> View on Etherscan
                   </a>
-                  <a href={nft.details.original} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-muted hover:text-primary hover:underline">
-                    <Globe size={16} /> View Original
+                  <a href={nft.details.original} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-main hover:text-primary hover:underline">
+                    <Globe size={16} className='text-muted'/> View Original
                   </a>
                 </div>
               </div>
@@ -140,7 +141,30 @@ For more information about the artist and the Galactic series, visit the officia
               </div>
             </div>
           </div>
+        {/* More from this artist section */}
+        <div className="container max-w-5xl mx-auto mt-20 mb-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-main">More from this artist</h2>
+            <Button 
+                variant="outline" 
+                size="md" 
+                sxclass="px-6"
+          icon={<ArrowRight size={18} />}
+        >Go to Artist Page
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {/* Dummy data for more NFTs from this artist */}
+            {[
+              { image: '/nft-2.png', title: 'Galactic Dog', creatorImage: '/avat.png', creatorName: 'Jack Smith', price: '1.5 ETH', highestBid: '1.1 ETH' },
+              { image: '/nft-3.png', title: 'Galactic Bird', creatorImage: '/avat.png', creatorName: 'Jack Smith', price: '2.0 ETH', highestBid: '1.7 ETH' },
+              { image: '/nft-1.png', title: 'Galactic Fish', creatorImage: '/avat.png', creatorName: 'Jack Smith', price: '1.1 ETH', highestBid: '0.9 ETH' },
+            ].map((nft, i) => (
+              <NFTCard key={i} {...nft} />
+            ))}
+          </div>
         </div>
+      </div>
     </RegularPageWrapper>
   );
 };
