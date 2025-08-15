@@ -22,28 +22,19 @@ const TopCreatorsTable: React.FC<TopCreatorsTableProps> = ({ columns, data }) =>
       <table className="w-full border-separate border-spacing-0">
         {/* Table Header */}
         <thead>
-          <tr>
-            <td colSpan={columns.length} className="p-0">
-              <div className="border-2 border-primary rounded-lg bg-transparent">
-                <table className="w-full">
-                  <tbody>
-                    <tr>
-                      {columns.map((column, index) => (
-                        <th
-                          key={column.key}
-                          className={`font-semibold text-main text-sm uppercase tracking-wide p-4 text-center align-middle
-                            ${index === 0 ? 'rounded-l-lg' : ''}
-                            ${index === columns.length - 1 ? 'rounded-r-lg' : ''}
-                          `}
-                        >
-                          {column.header}
-                        </th>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </td>
+          <tr className="border-2 border-primary rounded-lg bg-surface">
+            {columns.map((column, index) => (
+              <th
+                key={column.key}
+                className={`font-semibold text-main text-sm uppercase tracking-wide p-4 text-center align-middle
+                  ${index === 0 ? 'rounded-l-lg' : ''}
+                  ${index === columns.length - 1 ? 'rounded-r-lg' : ''}
+                `}
+                style={column.width ? { width: column.width } : {}}
+              >
+                {column.header}
+              </th>
+            ))}
           </tr>
           {/* Gap between thead and tbody */}
           <tr>
@@ -62,12 +53,23 @@ const TopCreatorsTable: React.FC<TopCreatorsTableProps> = ({ columns, data }) =>
                       ${colIndex === 0 ? 'rounded-l-lg font-medium' : ''}
                       ${colIndex === columns.length - 1 ? 'rounded-r-lg' : ''}
                     `}
+                    style={column.width ? { width: column.width } : {}}
                   >
                     {column.key === 'artist' ? (
                       <div className="flex items-center gap-3 justify-center">
                         <img src={row.avatar} alt={row.name} className="w-8 h-8 rounded-full" />
                         <span className="font-medium">{row.name}</span>
                       </div>
+                    ) : column.key === 'change' ? (
+                      <span className={
+                        row.change > 0
+                          ? 'text-green-600 font-bold'
+                          : row.change < 0
+                          ? 'text-red-600 font-bold'
+                          : 'text-gray-500 font-bold'
+                      }>
+                        {row.change > 0 ? `+${row.change}` : row.change}
+                      </span>
                     ) : column.key === 'index' ? (
                       <div className="w-8 h-8 flex items-center justify-center rounded-full bg-background font-bold mx-auto">{rowIndex + 1}</div>
                     ) : (
