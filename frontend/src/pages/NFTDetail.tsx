@@ -10,7 +10,7 @@ import FlipCountdown from '../components/FlipCountdown';
 import RegularPageWrapper from '../components/RegularPageWrapper';
 import NFTCard from '../components/NFTCard';
 
-const NFTDetail = () => {
+const NFTDetailPage = () => {
   // Dummy data for demonstration
   const nft = {
     image: '/nft-1.png',
@@ -169,4 +169,4 @@ For more information about the artist and the Galactic series, visit the officia
   );
 };
 
-export default NFTDetail;
+export default NFTDetailPage;

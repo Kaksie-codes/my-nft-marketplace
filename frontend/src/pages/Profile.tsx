@@ -11,7 +11,7 @@ import NFTCollectionCard from '../components/NFTCollectionCard';
 
 
 
-const Profile = () => {
+const ProfilePage = () => {
   // SlidingTabs and NFT data must be inside the component body for hooks
   const [activeTab, setActiveTab] = useState(0);
   const createdNFTs = [
@@ -126,4 +126,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default ProfilePage;
