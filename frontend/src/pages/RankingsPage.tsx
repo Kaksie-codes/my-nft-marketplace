@@ -6,8 +6,7 @@ import TopCreatorsTable from "../components/TopCreatorsTable";
 
 const columns = [
   { key: 'index', header: '#' },
-  { key: 'avatar', header: 'Avatar' },
-  { key: 'name', header: 'Creator' },
+  { key: 'artist', header: 'Artist' },
   { key: 'nfts', header: 'NFTs' },
   { key: 'volume', header: 'Volume' },
 ];

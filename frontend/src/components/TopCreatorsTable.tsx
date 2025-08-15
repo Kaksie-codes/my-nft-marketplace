@@ -63,10 +63,13 @@ const TopCreatorsTable: React.FC<TopCreatorsTableProps> = ({ columns, data }) =>
                       ${colIndex === columns.length - 1 ? 'rounded-r-lg' : ''}
                     `}
                   >
-                    {column.key === 'avatar' ? (
-                      <img src={row[column.key]} alt={row.name} className="w-8 h-8 rounded-full inline-block mr-2" />
+                    {column.key === 'artist' ? (
+                      <div className="flex items-center gap-3 justify-center">
+                        <img src={row.avatar} alt={row.name} className="w-8 h-8 rounded-full" />
+                        <span className="font-medium">{row.name}</span>
+                      </div>
                     ) : column.key === 'index' ? (
-                      rowIndex + 1
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-background font-bold mx-auto">{rowIndex + 1}</div>
                     ) : (
                       row[column.key]
                     )}
