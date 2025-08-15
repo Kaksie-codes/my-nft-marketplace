@@ -1,12 +1,23 @@
-import RegularPageWrapper from "../components/RegularPageWrapper";
 
+import RegularPageWrapper from "../components/RegularPageWrapper";
+import TopCreatorsTable from "../components/TopCreatorsTable";
+
+
+
+const columns = [
+  { key: 'index', header: '#', width: '5%' },
+  { key: 'avatar', header: '', width: '7%' },
+  { key: 'name', header: 'Creator', width: '35%' },
+  { key: 'nfts', header: 'NFTs', width: '18%' },
+  { key: 'volume', header: 'Volume', width: '20%' },
+];
 
 const topCreators = [
-  { name: 'Jack Smith', avatar: '/avat.png', nfts: 120, volume: '320 ETH' },
-  { name: 'Jane Doe', avatar: '/avat2.png', nfts: 98, volume: '210 ETH' },
-  { name: 'Alex Ray', avatar: '/avat3.png', nfts: 87, volume: '180 ETH' },
-  { name: 'Sam Lee', avatar: '/avat4.png', nfts: 75, volume: '150 ETH' },
-  { name: 'Chris Kim', avatar: '/avat5.png', nfts: 60, volume: '120 ETH' },
+  { id: '1', name: 'Jack Smith', avatar: '/avat.png', nfts: 120, volume: '320 ETH' },
+  { id: '2', name: 'Jane Doe', avatar: '/avat2.png', nfts: 98, volume: '210 ETH' },
+  { id: '3', name: 'Alex Ray', avatar: '/avat3.png', nfts: 87, volume: '180 ETH' },
+  { id: '4', name: 'Sam Lee', avatar: '/avat4.png', nfts: 75, volume: '150 ETH' },
+  { id: '5', name: 'Chris Kim', avatar: '/avat5.png', nfts: 60, volume: '120 ETH' },
 ];
 
 const RankingsPage = () => (
@@ -14,29 +25,7 @@ const RankingsPage = () => (
     <div className="min-h-screen bg-background text-main">
       <div className="container max-w-4xl mx-auto py-16">
         <h1 className="text-4xl font-bold mb-6">Top Creators</h1>
-        <table className="w-full bg-surface rounded-xl shadow overflow-hidden">
-          <thead>
-            <tr className="bg-primary text-white">
-              <th className="py-3 px-4 text-left">#</th>
-              <th className="py-3 px-4 text-left">Creator</th>
-              <th className="py-3 px-4 text-left">NFTs</th>
-              <th className="py-3 px-4 text-left">Volume</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topCreators.map((creator, idx) => (
-              <tr key={creator.name} className="border-b border-surface last:border-none">
-                <td className="py-3 px-4 font-bold">{idx + 1}</td>
-                <td className="py-3 px-4 flex items-center gap-3">
-                  <img src={creator.avatar} alt={creator.name} className="w-8 h-8 rounded-full" />
-                  <span>{creator.name}</span>
-                </td>
-                <td className="py-3 px-4">{creator.nfts}</td>
-                <td className="py-3 px-4">{creator.volume}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TopCreatorsTable columns={columns} data={topCreators} />
       </div>
     </div>
   </RegularPageWrapper>
