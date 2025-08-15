@@ -11,30 +11,31 @@ const categories = [
 ];
 
 const baseNFTs = [
-  { image: '/nft-1.png', title: 'Galactic Cat', creatorImage: '/avat.png', creatorName: 'Jack Smith', price: '1.2 ETH', highestBid: '0.8 ETH', category: 'Art' },
-  { image: '/nft-2.png', title: 'Galactic Dog', creatorImage: '/avat2.png', creatorName: 'Jane Doe', price: '2.1 ETH', highestBid: '1.5 ETH', category: 'Collectibles' },
-  { image: '/nft-3.png', title: 'Galactic Bird', creatorImage: '/avat3.png', creatorName: 'Alex Ray', price: '0.9 ETH', highestBid: '0.5 ETH', category: 'Music' },
-  { image: '/nft-4.png', title: 'Galactic Fish', creatorImage: '/avat4.png', creatorName: 'Sam Lee', price: '1.7 ETH', highestBid: '1.2 ETH', category: 'Photography' },
-  { image: '/nft-5.png', title: 'Galactic Fox', creatorImage: '/avat5.png', creatorName: 'Chris Kim', price: '2.5 ETH', highestBid: '2.1 ETH', category: 'Video' },
-  { image: '/nft-6.png', title: 'Galactic Wolf', creatorImage: '/avat6.png', creatorName: 'Pat Green', price: '1.3 ETH', highestBid: '1.0 ETH', category: 'Utility' },
+  { image: '/nft-1.png', title: 'Galactic Cat', creatorImage: '/art.png', creatorName: 'Jack Smith', price: '1.2 ETH', highestBid: '0.8 ETH', category: 'Art' },
+  { image: '/nft-2.png', title: 'Galactic Dog', creatorImage: '/collectibles.png', creatorName: 'Jane Doe', price: '2.1 ETH', highestBid: '1.5 ETH', category: 'Collectibles' },
+  { image: '/nft-3.png', title: 'Galactic Bird', creatorImage: '/music_notes.png', creatorName: 'Alex Ray', price: '0.9 ETH', highestBid: '0.5 ETH', category: 'Music' },
+  { image: '/nft-1.png', title: 'Galactic Fish', creatorImage: '/Planet.png', creatorName: 'Sam Lee', price: '1.7 ETH', highestBid: '1.2 ETH', category: 'Photography' },
+  { image: '/nft-2.png', title: 'Galactic Fox', creatorImage: '/VideoCamera.png', creatorName: 'Chris Kim', price: '2.5 ETH', highestBid: '2.1 ETH', category: 'Video' },
+  { image: '/nft-3.png', title: 'Galactic Wolf', creatorImage: '/MagicWand.png', creatorName: 'Pat Green', price: '1.3 ETH', highestBid: '1.0 ETH', category: 'Utility' },
 ];
 // Simulate 40 NFTs for 10 pages
-const nfts = Array.from({ length: 40 }, (_, i) => {
+const nftImages = ['/nft-1.png', '/nft-2.png', '/nft-3.png'];
+const nfts = Array.from({ length: 200 }, (_, i) => {
   const base = baseNFTs[i % baseNFTs.length];
   return {
     ...base,
     title: base.title + ' #' + (i + 1),
-    image: base.image.replace('.png', `-${(i % baseNFTs.length) + 1}.png`),
+    image: nftImages[i % nftImages.length],
   };
 });
 
 const collections = [
   { image: '/collectibles.png', title: 'Cool Collection', items: 12, owner: 'Jack Smith' },
-  { image: '/collectibles2.png', title: 'Rare Art', items: 8, owner: 'Jane Doe' },
-  { image: '/collectibles3.png', title: 'Pixel Wonders', items: 15, owner: 'Alex Ray' },
-  { image: '/collectibles4.png', title: 'Crypto Critters', items: 20, owner: 'Sam Lee' },
-  { image: '/collectibles5.png', title: 'Mystic Gallery', items: 10, owner: 'Chris Kim' },
-  { image: '/collectibles6.png', title: 'Digital Dreams', items: 18, owner: 'Pat Green' },
+  { image: '/art.png', title: 'Rare Art', items: 8, owner: 'Jane Doe' },
+  { image: '/Planet.png', title: 'Pixel Wonders', items: 15, owner: 'Alex Ray' },
+  { image: '/MagicWand.png', title: 'Crypto Critters', items: 20, owner: 'Sam Lee' },
+  { image: '/Paintbrush.png', title: 'Mystic Gallery', items: 10, owner: 'Chris Kim' },
+  { image: '/video.png', title: 'Digital Dreams', items: 18, owner: 'Pat Green' },
 ];
 
 const MarketPlacePage = () => {
@@ -86,7 +87,7 @@ const MarketPlacePage = () => {
                 <div className="flex flex-col md:flex-row gap-8">
                   {/* Sidebar for category filters under NFT tab only */}
                   <aside className="w-full md:w-64 flex-shrink-0 mb-8 md:mb-0">
-                    <div className="bg-surface rounded-xl p-6 shadow">
+                    <div className="bg-background rounded-xl p-6 shadow">
                       <h3 className="text-lg font-bold text-main mb-4">Categories</h3>
                       <div className="flex flex-col gap-3">
                         {categories.map(cat => (
