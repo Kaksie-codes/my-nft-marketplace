@@ -1,3 +1,4 @@
+import RegularPageWrapper from "../components/RegularPageWrapper";
 
 
 const topCreators = [
@@ -9,34 +10,36 @@ const topCreators = [
 ];
 
 const RankingsPage = () => (
-  <div className="min-h-screen bg-background text-main">
-    <div className="container max-w-4xl mx-auto py-16">
-      <h1 className="text-4xl font-bold mb-6">Top Creators</h1>
-      <table className="w-full bg-surface rounded-xl shadow overflow-hidden">
-        <thead>
-          <tr className="bg-primary text-white">
-            <th className="py-3 px-4 text-left">#</th>
-            <th className="py-3 px-4 text-left">Creator</th>
-            <th className="py-3 px-4 text-left">NFTs</th>
-            <th className="py-3 px-4 text-left">Volume</th>
-          </tr>
-        </thead>
-        <tbody>
-          {topCreators.map((creator, idx) => (
-            <tr key={creator.name} className="border-b border-surface last:border-none">
-              <td className="py-3 px-4 font-bold">{idx + 1}</td>
-              <td className="py-3 px-4 flex items-center gap-3">
-                <img src={creator.avatar} alt={creator.name} className="w-8 h-8 rounded-full" />
-                <span>{creator.name}</span>
-              </td>
-              <td className="py-3 px-4">{creator.nfts}</td>
-              <td className="py-3 px-4">{creator.volume}</td>
+  <RegularPageWrapper>
+    <div className="min-h-screen bg-background text-main">
+      <div className="container max-w-4xl mx-auto py-16">
+        <h1 className="text-4xl font-bold mb-6">Top Creators</h1>
+        <table className="w-full bg-surface rounded-xl shadow overflow-hidden">
+          <thead>
+            <tr className="bg-primary text-white">
+              <th className="py-3 px-4 text-left">#</th>
+              <th className="py-3 px-4 text-left">Creator</th>
+              <th className="py-3 px-4 text-left">NFTs</th>
+              <th className="py-3 px-4 text-left">Volume</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {topCreators.map((creator, idx) => (
+              <tr key={creator.name} className="border-b border-surface last:border-none">
+                <td className="py-3 px-4 font-bold">{idx + 1}</td>
+                <td className="py-3 px-4 flex items-center gap-3">
+                  <img src={creator.avatar} alt={creator.name} className="w-8 h-8 rounded-full" />
+                  <span>{creator.name}</span>
+                </td>
+                <td className="py-3 px-4">{creator.nfts}</td>
+                <td className="py-3 px-4">{creator.volume}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </RegularPageWrapper>
 );
 
 export default RankingsPage;
