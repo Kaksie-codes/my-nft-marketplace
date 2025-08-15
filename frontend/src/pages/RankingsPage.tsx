@@ -5,11 +5,11 @@ import TopCreatorsTable from "../components/TopCreatorsTable";
 
 
 const columns = [
-  { key: 'index', header: '#', width: '5%' },
-  { key: 'avatar', header: 'Avatar', width: '7%' },
-  { key: 'name', header: 'Creator', width: '35%' },
-  { key: 'nfts', header: 'NFTs', width: '18%' },
-  { key: 'volume', header: 'Volume', width: '20%' },
+  { key: 'index', header: '#' },
+  { key: 'avatar', header: 'Avatar' },
+  { key: 'name', header: 'Creator' },
+  { key: 'nfts', header: 'NFTs' },
+  { key: 'volume', header: 'Volume' },
 ];
 
 const topCreators = [

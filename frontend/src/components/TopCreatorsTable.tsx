@@ -23,22 +23,25 @@ const TopCreatorsTable: React.FC<TopCreatorsTableProps> = ({ columns, data }) =>
         {/* Table Header */}
         <thead>
           <tr>
-            <td colSpan={columns.length}>
+            <td colSpan={columns.length} className="p-0">
               <div className="border-2 border-primary rounded-lg bg-transparent">
-                <div className="flex">
-                  {columns.map((column, index) => (
-                    <div
-                      key={column.key}
-                      className={`font-semibold text-main text-sm uppercase tracking-wide p-4 text-left flex-1
-                        ${index === 0 ? 'rounded-l-lg' : ''}
-                        ${index === columns.length - 1 ? 'rounded-r-lg' : ''}
-                      `}
-                      style={{ width: column.width }}
-                    >
-                      {column.header}
-                    </div>
-                  ))}
-                </div>
+                <table className="w-full">
+                  <tbody>
+                    <tr>
+                      {columns.map((column, index) => (
+                        <th
+                          key={column.key}
+                          className={`font-semibold text-main text-sm uppercase tracking-wide p-4 text-center align-middle
+                            ${index === 0 ? 'rounded-l-lg' : ''}
+                            ${index === columns.length - 1 ? 'rounded-r-lg' : ''}
+                          `}
+                        >
+                          {column.header}
+                        </th>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </td>
           </tr>
@@ -55,7 +58,7 @@ const TopCreatorsTable: React.FC<TopCreatorsTableProps> = ({ columns, data }) =>
                 {columns.map((column, colIndex) => (
                   <td
                     key={column.key}
-                    className={`p-4 text-main
+                    className={`p-4 text-main text-center align-middle
                       ${colIndex === 0 ? 'rounded-l-lg font-medium' : ''}
                       ${colIndex === columns.length - 1 ? 'rounded-r-lg' : ''}
                     `}
