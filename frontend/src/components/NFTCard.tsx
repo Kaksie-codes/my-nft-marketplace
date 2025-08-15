@@ -5,12 +5,13 @@ interface NFTCardProps {
   creatorName: string;
   price: string;
   highestBid: string;
+  backgroundColor?: string;
   onClick?: () => void;
 }
 
-const NFTCard: React.FC<NFTCardProps> = ({ image, title, creatorImage, creatorName, price, highestBid, onClick }) => {
+const NFTCard: React.FC<NFTCardProps> = ({ image, title, creatorImage, creatorName, price, highestBid, backgroundColor, onClick }) => {
   return (
-    <div className={`bg-background rounded-[20px] group transition-all duration-300 hover:shadow-xl cursor-pointer`} onClick={onClick}>
+    <div className={`${backgroundColor || 'bg-surface'} rounded-[20px] group transition-all duration-300 hover:shadow-xl cursor-pointer`} onClick={onClick}>
       <div className="w-full h-[250px] relative overflow-hidden rounded-t-[20px]">
         <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
       </div>

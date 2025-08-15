@@ -1,9 +1,11 @@
 import { Eye } from "lucide-react"
 import Button from "./button/Button"
 import NFTCard from "./NFTCard"
+import { useNavigate } from "react-router-dom";
 // import NewNFTCard from "./NewNFTCard"
 
 const DiscoverMoreNFTsSection = () => {
+  const navigate = useNavigate();
   const nfts = [
     {
       image: 'nft-1.png',
@@ -105,6 +107,7 @@ const DiscoverMoreNFTsSection = () => {
                 creatorName={nft.creatorName}
                 price={nft.price}
                 highestBid={nft.highestBid}
+                onClick={() => navigate(`/nft/${encodeURIComponent(nft.title)}`)}
               />
             ))}
           </div>

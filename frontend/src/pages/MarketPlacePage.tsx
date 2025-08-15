@@ -217,7 +217,11 @@ const MarketPlacePage = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
                   {filteredCollections.length > 0 ? filteredCollections.map((col, i) => (
-                    <NFTCollectionCard key={i} {...col} />
+                    <NFTCollectionCard
+                      key={i}
+                      {...col}
+                      onClick={() => navigate(`/collection/${encodeURIComponent(col.title)}`)}
+                    />
                   )) : <div className="col-span-3 text-center text-muted text-lg">No collections found.</div>}
                 </div>
               )}

@@ -5,11 +5,12 @@ interface NFTCollectionCardProps {
   title: string;
   items: number;
   owner: string;
+  onClick?: () => void;
 }
 
 
-const NFTCollectionCard: React.FC<NFTCollectionCardProps> = ({ image, title, items, owner }) => (
-  <div className="relative bg-background rounded-2xl shadow group hover:shadow-xl transition-shadow overflow-hidden flex flex-col items-stretch min-h-[320px]">
+const NFTCollectionCard: React.FC<NFTCollectionCardProps> = ({ image, title, items, owner, onClick }) => (
+  <div className="relative bg-background rounded-2xl shadow group hover:shadow-xl transition-shadow overflow-hidden flex flex-col items-stretch min-h-[320px] cursor-pointer" onClick={onClick}>
     <div className="relative w-full h-40 overflow-hidden">
       <img
         src={image}
