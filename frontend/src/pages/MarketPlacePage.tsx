@@ -105,11 +105,15 @@ const MarketPlacePage = () => {
                         </label>
                       ))}
                     </div>
-                    <button
-                      className="mt-4 text-xs text-muted underline"
-                      onClick={() => setSelectedCategories([])}
-                      type="button"
-                    >Clear</button>
+                    {selectedCategories.length > 0 && (
+                      <button
+                        className="mt-4 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold shadow hover:bg-primary/80 transition border border-primary"
+                        onClick={() => setSelectedCategories([])}
+                        type="button"
+                      >
+                        Clear Filters
+                      </button>
+                    )}
                   </div>
                 </aside>
                 {/* Main NFT grid */}
