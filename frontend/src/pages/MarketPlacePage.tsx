@@ -1,6 +1,8 @@
 
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import SlidingTabs from '../components/SlidingTabs';
 import NFTCard from '../components/NFTCard';
 import NFTCollectionCard from '../components/NFTCollectionCard';
@@ -39,9 +41,20 @@ const collections = [
 ];
 
 const MarketPlacePage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState(0);
   const [search, setSearch] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  // Auto-select category from query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cat = params.get('category');
+    if (cat && categories.includes(cat)) {
+      setSelectedCategories([cat]);
+    }
+  }, [location.search]);
   const tabs = [
     { label: 'NFTs', count: nfts.length },
     { label: 'Collections', count: collections.length },
@@ -123,7 +136,11 @@ const MarketPlacePage = () => {
                   <div className="flex-1">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {paginatedNFTs.length > 0 ? paginatedNFTs.map((nft, i) => (
-                        <NFTCard key={i} {...nft} />
+                        <NFTCard
+                          key={i}
+                          {...nft}
+                          onClick={() => navigate(`/nft/${encodeURIComponent(nft.title)}`)}
+                        />
                       )) : <div className="col-span-2 text-center text-muted text-lg">No NFTs found.</div>}
                       {/* Pagination controls */}
                       {totalPages > 1 && (
