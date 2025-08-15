@@ -77,132 +77,134 @@ const MarketPlacePage = () => {
               placeholder="Search NFTs or Collections..."
               className="w-full max-w-xl px-5 py-3 rounded-xl border border-surface bg-background text-main text-lg focus:outline-none focus:border-primary transition"
             />
-          </div>
+          </div>        
+        </div>
           <SlidingTabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
-          <div className="mt-10">
-            {activeTab === 0 ? (
-              <div className="flex flex-col md:flex-row gap-8">
-                {/* Sidebar for category filters under NFT tab only */}
-                <aside className="w-full md:w-64 flex-shrink-0 mb-8 md:mb-0">
-                  <div className="bg-surface rounded-xl p-6 shadow">
-                    <h3 className="text-lg font-bold text-main mb-4">Categories</h3>
-                    <div className="flex flex-col gap-3">
-                      {categories.map(cat => (
-                        <label key={cat} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(cat)}
-                            onChange={e => {
-                              setSelectedCategories(prev =>
-                                e.target.checked
-                                  ? [...prev, cat]
-                                  : prev.filter(c => c !== cat)
-                              );
-                            }}
-                            className="accent-primary w-4 h-4 rounded focus:ring-2 focus:ring-primary"
-                          />
-                          <span className="text-main text-sm">{cat}</span>
-                        </label>
-                      ))}
-                    </div>
-                    {selectedCategories.length > 0 && (
-                      <button
-                        className="mt-4 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold shadow hover:bg-primary/80 transition border border-primary"
-                        onClick={() => setSelectedCategories([])}
-                        type="button"
-                      >
-                        Clear Filters
-                      </button>
-                    )}
-                  </div>
-                </aside>
-                {/* Main NFT grid */}
-                <div className="flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {paginatedNFTs.length > 0 ? paginatedNFTs.map((nft, i) => (
-                      <NFTCard key={i} {...nft} />
-                    )) : <div className="col-span-2 text-center text-muted text-lg">No NFTs found.</div>}
-                    {/* Pagination controls */}
-                    {totalPages > 1 && (
-                      <div className="col-span-2 flex justify-center mt-8">
-                        <nav className="flex gap-2">
-                          {/* Windowed pagination logic */}
-                          {(() => {
-                            const windowSize = 5;
-                            const pages = [];
-                            if (totalPages <= windowSize) {
-                              for (let i = 1; i <= totalPages; i++) {
-                                pages.push(
-                                  <button
-                                    key={i}
-                                    className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === i ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
-                                    onClick={() => setPage(i)}
-                                  >
-                                    {i}
-                                  </button>
+          <div className="bg-surface">
+            <div className="container max-w-6xl mx-auto pt-16 pb-10">
+              {activeTab === 0 ? (
+                <div className="flex flex-col md:flex-row gap-8">
+                  {/* Sidebar for category filters under NFT tab only */}
+                  <aside className="w-full md:w-64 flex-shrink-0 mb-8 md:mb-0">
+                    <div className="bg-surface rounded-xl p-6 shadow">
+                      <h3 className="text-lg font-bold text-main mb-4">Categories</h3>
+                      <div className="flex flex-col gap-3">
+                        {categories.map(cat => (
+                          <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories.includes(cat)}
+                              onChange={e => {
+                                setSelectedCategories(prev =>
+                                  e.target.checked
+                                    ? [...prev, cat]
+                                    : prev.filter(c => c !== cat)
                                 );
-                              }
-                            } else {
-                              // Always show first page
-                              pages.push(
-                                <button
-                                  key={1}
-                                  className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === 1 ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
-                                  onClick={() => setPage(1)}
-                                >
-                                  1
-                                </button>
-                              );
-                              // Show left ellipsis if needed
-                              if (page > 3) {
-                                pages.push(<span key="left-ellipsis" className="px-2">...</span>);
-                              }
-                              // Show middle pages
-                              const start = Math.max(2, page - 1);
-                              const end = Math.min(totalPages - 1, page + 1);
-                              for (let i = start; i <= end; i++) {
-                                pages.push(
-                                  <button
-                                    key={i}
-                                    className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === i ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
-                                    onClick={() => setPage(i)}
-                                  >
-                                    {i}
-                                  </button>
-                                );
-                              }
-                              // Show right ellipsis if needed
-                              if (page < totalPages - 2) {
-                                pages.push(<span key="right-ellipsis" className="px-2">...</span>);
-                              }
-                              // Always show last page
-                              pages.push(
-                                <button
-                                  key={totalPages}
-                                  className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === totalPages ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
-                                  onClick={() => setPage(totalPages)}
-                                >
-                                  {totalPages}
-                                </button>
-                              );
-                            }
-                            return pages;
-                          })()}
-                        </nav>
+                              }}
+                              className="accent-primary w-4 h-4 rounded focus:ring-2 focus:ring-primary"
+                            />
+                            <span className="text-main text-sm">{cat}</span>
+                          </label>
+                        ))}
                       </div>
-                    )}
+                      {selectedCategories.length > 0 && (
+                        <button
+                          className="mt-4 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold shadow hover:bg-primary/80 transition border border-primary"
+                          onClick={() => setSelectedCategories([])}
+                          type="button"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
+                  </aside>
+                  {/* Main NFT grid */}
+                  <div className="flex-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {paginatedNFTs.length > 0 ? paginatedNFTs.map((nft, i) => (
+                        <NFTCard key={i} {...nft} />
+                      )) : <div className="col-span-2 text-center text-muted text-lg">No NFTs found.</div>}
+                      {/* Pagination controls */}
+                      {totalPages > 1 && (
+                        <div className="col-span-2 flex justify-center mt-8">
+                          <nav className="flex gap-2">
+                            {/* Windowed pagination logic */}
+                            {(() => {
+                              const windowSize = 5;
+                              const pages = [];
+                              if (totalPages <= windowSize) {
+                                for (let i = 1; i <= totalPages; i++) {
+                                  pages.push(
+                                    <button
+                                      key={i}
+                                      className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === i ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
+                                      onClick={() => setPage(i)}
+                                    >
+                                      {i}
+                                    </button>
+                                  );
+                                }
+                              } else {
+                                // Always show first page
+                                pages.push(
+                                  <button
+                                    key={1}
+                                    className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === 1 ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
+                                    onClick={() => setPage(1)}
+                                  >
+                                    1
+                                  </button>
+                                );
+                                // Show left ellipsis if needed
+                                if (page > 3) {
+                                  pages.push(<span key="left-ellipsis" className="px-2">...</span>);
+                                }
+                                // Show middle pages
+                                const start = Math.max(2, page - 1);
+                                const end = Math.min(totalPages - 1, page + 1);
+                                for (let i = start; i <= end; i++) {
+                                  pages.push(
+                                    <button
+                                      key={i}
+                                      className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === i ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
+                                      onClick={() => setPage(i)}
+                                    >
+                                      {i}
+                                    </button>
+                                  );
+                                }
+                                // Show right ellipsis if needed
+                                if (page < totalPages - 2) {
+                                  pages.push(<span key="right-ellipsis" className="px-2">...</span>);
+                                }
+                                // Always show last page
+                                pages.push(
+                                  <button
+                                    key={totalPages}
+                                    className={`px-3 py-1 rounded-lg border text-sm font-bold transition ${page === totalPages ? 'bg-primary text-white border-primary' : 'bg-background text-main border-surface hover:bg-primary/10'}`}
+                                    onClick={() => setPage(totalPages)}
+                                  >
+                                    {totalPages}
+                                  </button>
+                                );
+                              }
+                              return pages;
+                            })()}
+                          </nav>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-                {filteredCollections.length > 0 ? filteredCollections.map((col, i) => (
-                  <NFTCollectionCard key={i} {...col} />
-                )) : <div className="col-span-3 text-center text-muted text-lg">No collections found.</div>}
-              </div>
-            )}
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+                  {filteredCollections.length > 0 ? filteredCollections.map((col, i) => (
+                    <NFTCollectionCard key={i} {...col} />
+                  )) : <div className="col-span-3 text-center text-muted text-lg">No collections found.</div>}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
       </div>
     </RegularPageWrapper>
   );
