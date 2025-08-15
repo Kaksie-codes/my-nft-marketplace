@@ -22,22 +22,28 @@ const TopCreatorsTable: React.FC<TopCreatorsTableProps> = ({ columns, data }) =>
       <table className="w-full border-separate border-spacing-0">
         {/* Table Header */}
         <thead>
-          <tr className="border-2 border-primary bg-transparent rounded-lg">
-            {columns.map((column, index) => (
-              <th
-                key={column.key}
-                className={`font-semibold text-main text-sm uppercase tracking-wide p-4 text-left
-                  ${index === 0 ? 'rounded-l-lg' : ''}
-                  ${index === columns.length - 1 ? 'rounded-r-lg' : ''}
-                `}
-                style={{ width: column.width }}
-              >
-                {column.header}
-              </th>
-            ))}
+          <tr>
+            <td colSpan={columns.length}>
+              <div className="border-2 border-primary rounded-lg bg-transparent">
+                <div className="flex">
+                  {columns.map((column, index) => (
+                    <div
+                      key={column.key}
+                      className={`font-semibold text-main text-sm uppercase tracking-wide p-4 text-left flex-1
+                        ${index === 0 ? 'rounded-l-lg' : ''}
+                        ${index === columns.length - 1 ? 'rounded-r-lg' : ''}
+                      `}
+                      style={{ width: column.width }}
+                    >
+                      {column.header}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </td>
           </tr>
           {/* Gap between thead and tbody */}
-          <tr className="border-2 border-primary bg-transparent rounded-lg">
+          <tr>
             <td colSpan={columns.length} className="h-4"></td>
           </tr>
         </thead>
