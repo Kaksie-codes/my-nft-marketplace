@@ -8,7 +8,7 @@ const topCreators = [
   { name: 'Chris Kim', avatar: '/avat5.png', nfts: 60, volume: '120 ETH' },
 ];
 
-const RankingsPage = () => (
+const Rankings = () => (
   <div className="min-h-screen bg-background text-main">
     <div className="container max-w-4xl mx-auto py-16">
       <h1 className="text-4xl font-bold mb-6">Top Creators</h1>
@@ -39,4 +39,4 @@ const RankingsPage = () => (
   </div>
 );
 
-export default RankingsPage;
+export default Rankings;

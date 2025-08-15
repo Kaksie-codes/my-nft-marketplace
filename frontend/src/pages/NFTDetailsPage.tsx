@@ -5,13 +5,21 @@
 import Avatar from '../components/avatar';
 import Button from '../components/button/Button';
 import { Globe, Clock, ArrowRight } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import PlaceBidModal from '../components/modals/PlaceBidModal';
 import FlipCountdown from '../components/FlipCountdown';
 import RegularPageWrapper from '../components/RegularPageWrapper';
 import NFTCard from '../components/NFTCard';
 
 const NFTDetailPage = () => {
   // Dummy data for demonstration
+  const [isBidModalOpen, setBidModalOpen] = useState(false);
+  const handleBidSubmit = (bidAmount: string) => {
+    // Convert bidAmount to number if needed
+    const amount = Number(bidAmount);
+    setBidModalOpen(false);
+    alert(`Bid placed: ${amount} ETH`);
+  };
   const nft = {
     image: '/nft-1.png',
     name: 'Galactic Cat',
@@ -137,7 +145,12 @@ For more information about the artist and the Galactic series, visit the officia
                   <span className="font-semibold">Auction ends in</span>
                 </div>
                 <FlipCountdown endTime={nft.auctionEnds} />
-                <Button size="lg" variant="primary" sxclass="w-full mt-2">Place Bid</Button>
+                <Button size="lg" variant="primary" sxclass="w-full mt-2" onClick={() => setBidModalOpen(true)}>Place Bid</Button>
+                <PlaceBidModal
+                  isOpen={isBidModalOpen}
+                  onClose={() => setBidModalOpen(false)}
+                  onSubmit={handleBidSubmit}
+                />
               </div>
             </div>
           </div>
