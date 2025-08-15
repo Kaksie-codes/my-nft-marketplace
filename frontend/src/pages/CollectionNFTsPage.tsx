@@ -15,14 +15,15 @@ const allNFTs = [
 const CollectionNFTsPage = () => {
   const { collectionName } = useParams();
   const navigate = useNavigate();
-  const nfts = allNFTs.filter(nft => nft.collection === collectionName);
+  const decodedCollectionName = collectionName ? decodeURIComponent(collectionName) : '';
+  const nfts = allNFTs.filter(nft => nft.collection === decodedCollectionName);
 
   return (
     <RegularPageWrapper>
       <div className="min-h-screen bg-background text-main">
         <div className="container max-w-5xl mx-auto pt-16 pb-10">
-          <h1 className="text-4xl font-extrabold mb-4 text-main">NFTs in "{collectionName}"</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <h1 className="text-4xl font-extrabold mb-4 text-main">NFTs in "{decodedCollectionName}"</h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {nfts.length > 0 ? nfts.map((nft, i) => (
               <NFTCard
                 key={i}

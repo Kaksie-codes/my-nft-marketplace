@@ -139,6 +139,7 @@ const MarketPlacePage = () => {
                         <NFTCard
                           key={i}
                           {...nft}
+                          backgroundColor='bg-background'
                           onClick={() => navigate(`/nft/${encodeURIComponent(nft.title)}`)}
                         />
                       )) : <div className="col-span-2 text-center text-muted text-lg">No NFTs found.</div>}
