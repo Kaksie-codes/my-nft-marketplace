@@ -389,7 +389,7 @@ const CreateNFTPage: React.FC = () => {
                           : 'border-main hover:border-primary'
                       }`}
                     >
-                      <div className={`w-3 h-3 rounded-full ${blockchain.color}`} />
+                      <div className={`w-3 h-3 rounded-full ${formData.blockchain !== blockchain.value ? blockchain.color : 'bg-white'}`} />
                       <span className="font-medium">{blockchain.label}</span>
                     </button>
                   ))}
