@@ -144,7 +144,7 @@ const CreateNFTPage: React.FC = () => {
       <div className="min-h-screen  py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto container">
           <div className="text-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-main mb-2">Create New NFT</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-main mb-2 mt-5">Create New NFT</h1>
             <p className="text-muted text-sm sm:text-base max-w-2xl mx-auto">
               Upload your digital artwork and set up your NFT with detailed metadata and pricing
             </p>
@@ -167,7 +167,7 @@ const CreateNFTPage: React.FC = () => {
                   className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
                     isDragging
                       ? 'border-primary bg-blue-50'
-                      : 'border-gray-300 hover:border-primary hover:bg-background'
+                      : 'border-muted hover:border-primary hover:bg-background'
                   }`}
                 >
                   <input
