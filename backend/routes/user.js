@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import User from '../models/User.js';
+import auth from '../middleware/auth.js';
+
 const router = express.Router();
-const User = require('../models/User');
-const auth = require('../middleware/auth');
 
 // Get current user profile (protected)
 router.get('/me', auth, async (req, res) => {
@@ -18,4 +19,4 @@ router.put('/me', auth, async (req, res) => {
   res.json(user);
 });
 
-module.exports = router;
+export default router;
