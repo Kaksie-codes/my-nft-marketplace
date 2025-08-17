@@ -64,7 +64,7 @@ const Input: React.FC<InputProps> = ({
       >
         {/* Label */}
         <motion.span
-          className={`absolute left-4 transition-all duration-200 font-bold pointer-events-none text-grey-100 ${
+          className={`absolute left-4 transition-all duration-200 font-bold pointer-events-none ${bgColor ? 'text-main' : 'text-grey-100'}  ${
             isFocused || hasValue ? "top-2 text-[10px] text-gray-300" : "top-4 text-sm"
           }`}
         >

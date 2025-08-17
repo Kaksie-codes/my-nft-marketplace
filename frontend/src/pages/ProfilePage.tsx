@@ -53,7 +53,7 @@ const ProfilePage = () => {
                     <h1 className="text-main font-extrabold text-4xl leading-tight">Jack Smith</h1>
                     <div className="text-muted text-lg font-mono mb-2">@jacksmith</div>
                 </div>
-                <div className="flex  gap-4 items-center ">
+                <div className="flex gap-4 items-center ">
                     <Button
                         size='md'
                         variant='primary'
@@ -70,6 +70,16 @@ const ProfilePage = () => {
                     >
                     Follow
                     </Button>
+                    {/* Create NFT Button */}
+                    <a href="/create">
+                      <Button
+                        size='md'
+                        variant='primary'
+                        sxclass='px-6 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white'
+                      >
+                        Create NFT
+                      </Button>
+                    </a>
                 </div>
             </div>
             {/* Stats */}
