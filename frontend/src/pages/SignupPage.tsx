@@ -139,7 +139,7 @@ const SignupPage = () => {
         }
       });
   };
-
+  console.log({validate, setLoading, navigate});
   return (
     <AuthPageWrapper
         details={{

@@ -1,5 +1,7 @@
 import React from 'react';
-import { X, Wallet, Shield, Zap } from 'lucide-react';
+import { X, 
+  // Wallet, 
+  Shield, Zap } from 'lucide-react';
 
 interface WalletModalProps {
   isOpen: boolean;

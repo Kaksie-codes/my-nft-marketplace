@@ -1,4 +1,3 @@
-import React from 'react';
 
 const WalletConnectModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   if (!open) return null;

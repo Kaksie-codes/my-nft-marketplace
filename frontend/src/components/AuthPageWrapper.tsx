@@ -28,6 +28,7 @@ const AuthPageWrapper: React.FC<AuthPageWrapperProps> = ({
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const fromValue = searchParams.get('from');
+  console.log({navigate})
 
   return (
     <div className='bg-background min-h-screen flex flex-col lg:flex-row bg-gree'>

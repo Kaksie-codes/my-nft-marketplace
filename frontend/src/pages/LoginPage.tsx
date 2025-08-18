@@ -75,7 +75,14 @@ const LoginPage = () => {
         e.preventDefault();
         alert("Signup function not implemented yet");
     }
-
+    console.log({
+      fromValue, 
+      refCode, 
+      navigate, 
+      googleLoading, 
+      validate, 
+      setLoading
+    });
   return (
     <AuthPageWrapper
       details={{
