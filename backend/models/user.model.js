@@ -42,6 +42,10 @@ const userSchema = new Schema({
       type: String,
       unique: true
     },
+    referrals: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    }],
     isVerified: { 
         type: Boolean, 
         default: false 

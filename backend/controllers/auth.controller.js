@@ -19,53 +19,60 @@ let passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for pass
 // @route POST: /api/auth/signup
 // @access Public
 const signupUser = async (req, res, next) => {
-    const { username, email, password } = req.body;
-    console.log({username, email, password});
+    const { 
+        username, 
+        email, 
+        password,
+        firstname,
+        lastname,
+        refCode
+    } = req.body;
+    console.log({username, email, password, firstname, lastname, refCode});
 
     try{ 
-        // validating the data from the frontend
-        if(username.length < 3){
-            return next(handleError(403, "Username must be at least three letters long" ));        
-        }
-        if(!email.length){
-            return next(handleError(403, "Enter email" ));
-        }
-        if(!emailRegex.test(email)){
-            return next(handleError(403, "Email is Invalid" ));       
-        }
-        if(!passwordRegex.test(password)){
-            return next(handleError(403, "Password should be 6 to 20 characters long with a numeric, 1 lowercase and 1 uppercase letters." ));         
-        }
+        // // validating the data from the frontend
+        // if(username.length < 3){
+        //     return next(handleError(403, "Username must be at least three letters long" ));        
+        // }
+        // if(!email.length){
+        //     return next(handleError(403, "Enter email" ));
+        // }
+        // if(!emailRegex.test(email)){
+        //     return next(handleError(403, "Email is Invalid" ));       
+        // }
+        // if(!passwordRegex.test(password)){
+        //     return next(handleError(403, "Password should be 6 to 20 characters long with a numeric, 1 lowercase and 1 uppercase letters." ));         
+        // }
 
-        //check if the user already exists in the database
-        const emailExists = await User.findOne({"email":email});
-        const usernameExists = await User.findOne({"username": username});
+        // //check if the user already exists in the database
+        // const emailExists = await User.findOne({"email":email});
+        // const usernameExists = await User.findOne({"username": username});
 
 
-        if(usernameExists){
-            return next(handleError(403, "Username is already in use" ));         
-        }
-        if(emailExists){
-            return next(handleError(403, "Email is already in use"));         
-        }       
+        // if(usernameExists){
+        //     return next(handleError(403, "Username is already in use" ));         
+        // }
+        // if(emailExists){
+        //     return next(handleError(403, "Email is already in use"));         
+        // }       
 
-        // Hash the password
-        const saltRounds = 10;
-        const hashedPassword = await bcryptjs.hash(password, saltRounds);
+        // // Hash the password
+        // const saltRounds = 10;
+        // const hashedPassword = await bcryptjs.hash(password, saltRounds);
     
-        // Create a new User
-        const newUser = new User({
-            username,
-            email,
-            fullname: '', 
-            password: hashedPassword        
-        });
+        // // Create a new User
+        // const newUser = new User({
+        //     username,
+        //     email,
+        //     fullname: '', 
+        //     password: hashedPassword        
+        // });
 
-        // save the user
-        await newUser.save(); 
+        // // save the user
+        // await newUser.save(); 
         
-        // send verification link to the user
-        await sendVerificationEmail(newUser);   
+        // // send verification link to the user
+        // await sendVerificationEmail(newUser);   
 
         return res.status(200).json({
             success: true,
