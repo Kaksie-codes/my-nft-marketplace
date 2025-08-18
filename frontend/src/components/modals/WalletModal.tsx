@@ -2,7 +2,7 @@ import React from 'react';
 import { X, 
   // Wallet, 
   Shield, Zap } from 'lucide-react';
-
+// sushi
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;
