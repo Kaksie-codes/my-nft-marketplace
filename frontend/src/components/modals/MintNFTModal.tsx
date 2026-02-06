@@ -1,10 +1,12 @@
 // modals/MintNFTModal.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Upload, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { uploadNFTToPinata, validateImageFile } from '../../utils/ipfs';
 import { NFT_COLLECTION_ABI } from '../../lib/abi/NFTCollection';
 import { CONTRACT_ADDRESSES } from '../../lib/config';
+import { parseEventLogs } from 'viem';
+
 
 interface MintNFTModalProps {
   isOpen: boolean;
@@ -33,11 +35,51 @@ const MintNFTModal: React.FC<MintNFTModalProps> = ({ isOpen, onClose, onSuccess 
   const [tokenId, setTokenId] = useState<bigint | null>(null);
   const [metadataURI, setMetadataURI] = useState('');
 
+  
+
+  useEffect(() => {
+    console.log(metadataURI);
+  }, [metadataURI]);
+
   // Wagmi hooks for minting
-  const { data: hash, writeContract, isPending: isMinting } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+  const { data: hash, writeContract } = useWriteContract();
+
+  const { data: receipt, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
+
+    useEffect(() => {
+    if (!receipt || !isConfirmed) return;
+
+    try {
+        // Parse all logs using the NFTCollection ABI
+        const logs = parseEventLogs({
+        abi: NFT_COLLECTION_ABI,
+        logs: receipt.logs,
+        });
+
+        // Find the NFTMinted event
+        const mintEvent = logs.find(
+        (log) => log.eventName === 'NFTMinted'
+        );
+
+        if (!mintEvent) {
+        throw new Error('NFTMinted event not found');
+        }
+
+        const realTokenId = mintEvent.args.tokenId as bigint;
+
+        setTokenId(realTokenId);
+        setCurrentStep('success');
+
+        onSuccess?.(realTokenId);
+    } catch (err) {
+        console.error('Failed to parse mint event:', err);
+        setErrorMessage('Mint succeeded but failed to read token ID');
+        setCurrentStep('error');
+    }
+    }, [receipt, isConfirmed, onSuccess]);
+
 
   // Handle image file selection
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,12 +150,12 @@ const MintNFTModal: React.FC<MintNFTModalProps> = ({ isOpen, onClose, onSuccess 
       setUploadProgress('IPFS upload complete! Minting NFT...');
 
       // Step 2: Mint NFT on blockchain
-      writeContract({
-        address: CONTRACT_ADDRESSES.nftCollection as `0x${string}`,
-        abi: NFT_COLLECTION_ABI,
-        functionName: 'mint',
-        args: [address, metadataURI],
-      });
+        writeContract({
+            address: CONTRACT_ADDRESSES.nftCollection as `0x${string}`,
+            abi: NFT_COLLECTION_ABI,
+            functionName: 'mintNFT',
+            args: [metadataURI],
+        });
 
     } catch (error: unknown) {
       console.error('Minting error:', error);
@@ -122,22 +164,6 @@ const MintNFTModal: React.FC<MintNFTModalProps> = ({ isOpen, onClose, onSuccess 
     }
   };
 
-  // Handle transaction confirmation
-  React.useEffect(() => {
-    if (isConfirmed && hash) {
-      setCurrentStep('success');
-      setUploadProgress('NFT minted successfully!');
-      
-      // In a real app, you'd parse the transaction logs to get the tokenId
-      // For now, we'll simulate it
-      const simulatedTokenId = BigInt(Date.now());
-      setTokenId(simulatedTokenId);
-      
-      if (onSuccess) {
-        onSuccess(simulatedTokenId);
-      }
-    }
-  }, [isConfirmed, hash, onSuccess]);
 
   // Reset modal
   const handleClose = () => {

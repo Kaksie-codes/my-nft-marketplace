@@ -1,12 +1,12 @@
 import type { ReactNode } from "react"
-import Header from "./header/Header"
+// import Header from "./header/Header"
 import Footer from "./Footer"
 
 
 const RegularPageWrapper = ({ children }:{ children:ReactNode }) => {
   return (
     <div>
-      <Header/>
+      {/* <Header/> */}
       {children}
       <Footer/>
     </div>

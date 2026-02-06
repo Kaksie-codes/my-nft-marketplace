@@ -13,6 +13,8 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
 import CreateNFTPage from './pages/CreateNFTPage';
+import DashboardWrapper from './components/DashboardWrapper';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
 
@@ -23,13 +25,17 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route path="/nft/:id" element={<NFTDetailPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
+     
+      
       <Route path="/marketplace" element={<MarketPlacePage />} />
       <Route path="/collection/:collectionName" element={<CollectionNFTsPage />} />
-
-      <Route path="/create" element={<CreateNFTPage />} /> 
-      <Route path="/rankings" element={<RankingsPage />} />
+      <Route path="/dashboard" element={<DashboardWrapper />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="create" element={<CreateNFTPage />} />
+        <Route path="rankings" element={<RankingsPage />} />
+        <Route path="nft/:id" element={<NFTDetailPage />} />
+      </Route>
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="*" element={<NotFoundPage />} />

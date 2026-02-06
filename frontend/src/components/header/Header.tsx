@@ -19,9 +19,12 @@ import ThemeToggler from '../ThemeToggler';
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi';
 import MintNFTModal from '../modals/MintNFTModal';
+import Button from '../button/Button';
+import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,7 +36,6 @@ const Header: React.FC = () => {
   
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isNavigationModalOpen, setIsNavigationModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -101,6 +103,20 @@ const Header: React.FC = () => {
               {/* Right Side Actions */}
               <div className="flex items-center space-x-4">  
                 {/* Mint NFT Button - Only show when wallet is connected */}
+                {
+                  isConnected && (
+                    <Button
+                      // title='Dashboard'
+                      onClick={() => navigate('/dashboard')}
+                      variant='primary'
+                      size='md'
+                      sxclass='hidden md:inline-flex items-center gap-2 px-4 py-2'
+                      >
+                      {/* <Upload size={16} /> */}
+                      Dashboard
+                    </Button>
+                  )
+                }
                 {isConnected && (
                   <button
                     onClick={() => setIsMintModalOpen(true)}
