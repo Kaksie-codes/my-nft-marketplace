@@ -117,15 +117,7 @@ const Header: React.FC = () => {
                     </Button>
                   )
                 }
-                {isConnected && (
-                  <button
-                    onClick={() => setIsMintModalOpen(true)}
-                    className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
-                  >
-                    <Upload size={18} />
-                    Mint NFT
-                  </button>
-                )}
+              
                 {/* Wallet Connection */}
                 <ConnectButton 
                   showBalance={true}
