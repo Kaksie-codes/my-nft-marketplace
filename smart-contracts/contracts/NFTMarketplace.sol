@@ -46,7 +46,8 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 // Protects the contract against reentrancy attacks, where a malicious
 // contract tries to call back into this contract and drain funds
 // Used on functions that transfer ETH or NFTs
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+// ✅ NEW (OpenZeppelin v5.x)
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Ownership and access control
 // Provides a standard way to define an owner for this contract
