@@ -2,7 +2,8 @@
 // Contract addresses on Sepolia testnet
 export const CONTRACT_ADDRESSES = {
   nftCollection: '0x302b9fe8cb515f174f1bd1d896e3d727089cce6c', 
-  marketplace: '0x75D0CE537602B55694BE9FD8F5384fFF264985b3',     
+  marketplace: '0x75D0CE537602B55694BE9FD8F5384fFF264985b3',
+  nftCollectionFactory: 'DEPLOY_AND_PASTE_ADDRESS_HERE', // TODO: deploy NFTCollectionFactory and paste address
 } as const;
 
 

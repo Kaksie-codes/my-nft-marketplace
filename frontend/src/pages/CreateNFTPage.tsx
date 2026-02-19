@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { 
   Upload, 
@@ -6,14 +6,24 @@ import {
   Plus, 
   X, 
   Eye, 
-  DollarSign, 
-  Percent,
   Tag,
   FileText,
   Palette,
-  Zap
+  Zap,
+  Layers,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  ExternalLink,
+  Film
 } from 'lucide-react';
-import RegularPageWrapper from '../components/RegularPageWrapper';
+import { Link } from 'react-router-dom';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { parseEventLogs } from 'viem';
+import { uploadNFTToPinata } from '../utils/ipfs';
+import { NFT_COLLECTION_ABI } from '../lib/abi/NFTCollection';
+import { NFT_COLLECTION_FACTORY_ABI } from '../lib/abi/NFTCollectionFactory';
+import { CONTRACT_ADDRESSES } from '../lib/config';
 import Input from '../components/inputs/Input';
 import Button from '../components/button/Button';
 
@@ -27,30 +37,81 @@ interface NFTFormData {
   name: string;
   description: string;
   category: string;
-  price: string;
-  currency: string;
-  royalties: string;
-  blockchain: string;
-  supply: string;
+  collection: string;
 }
 
+type MintStep = 'form' | 'uploading' | 'minting' | 'success' | 'error';
+
+// Accepted file types: images + video
+const ACCEPTED_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'video/mp4', 'video/webm', 'video/quicktime',
+];
+const MAX_FILE_SIZE_MB = 50;
+
 const CreateNFTPage: React.FC = () => {
+  const { address, isConnected } = useAccount();
+
   const [file, setFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
+  const [filePreview, setFilePreview] = useState<string>('');
+  const [isVideo, setIsVideo] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [properties, setProperties] = useState<NFTProperty[]>([]);
   const [formData, setFormData] = useState<NFTFormData>({
     name: '',
     description: '',
     category: '',
-    price: '',
-    currency: 'ETH',
-    royalties: '5',
-    blockchain: 'ethereum',
-    supply: '1'
+    collection: '',
   });
-  
+  const [mintStep, setMintStep] = useState<MintStep>('form');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [tokenId, setTokenId] = useState<bigint | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch user's collections from the factory
+  const { data: userCollections } = useReadContract({
+    address: CONTRACT_ADDRESSES.nftCollectionFactory as `0x${string}`,
+    abi: NFT_COLLECTION_FACTORY_ABI,
+    functionName: 'getUserCollections',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  const collectionAddresses = (userCollections as string[]) || [];
+
+  // Wagmi write + receipt
+  const { data: hash, writeContract } = useWriteContract();
+  const { data: receipt, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  // Parse mint event on confirmation
+  useEffect(() => {
+    if (!receipt || !isConfirmed) return;
+    try {
+      // Use type assertion to work around ABI not being declared `as const`
+      const logs = parseEventLogs({
+        abi: NFT_COLLECTION_ABI as readonly unknown[] as readonly [{
+          type: 'event'; name: 'NFTMinted'; inputs: readonly [
+            { name: 'creator'; type: 'address'; indexed: true },
+            { name: 'tokenId'; type: 'uint256'; indexed: true },
+            { name: 'tokenURI'; type: 'string'; indexed: false },
+          ];
+        }],
+        logs: receipt.logs,
+        eventName: 'NFTMinted',
+      });
+
+      const mintEvent = logs[0];
+      if (!mintEvent) throw new Error('NFTMinted event not found');
+
+      setTokenId(mintEvent.args.tokenId);
+      setMintStep('success');
+    } catch (err) {
+      console.error('Failed to parse mint event:', err);
+      setErrorMessage('Mint succeeded but failed to read token ID.');
+      setMintStep('error');
+    }
+  }, [receipt, isConfirmed]);
 
   const categories = [
     { value: 'art', label: 'Art', icon: Palette },
@@ -60,15 +121,6 @@ const CreateNFTPage: React.FC = () => {
     { value: 'collectibles', label: 'Collectibles', icon: Tag },
     { value: 'gaming', label: 'Gaming', icon: Zap },
   ];
-
-  const blockchains = [
-    { value: 'ethereum', label: 'Ethereum', color: 'bg-blue-500' },
-    { value: 'polygon', label: 'Polygon', color: 'bg-purple-500' },
-    { value: 'solana', label: 'Solana', color: 'bg-green-500' },
-    { value: 'binance', label: 'Binance Smart Chain', color: 'bg-yellow-500' }
-  ];
-
-  const currencies = ['ETH', 'MATIC', 'SOL', 'BNB', 'USD'];
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -83,28 +135,29 @@ const CreateNFTPage: React.FC = () => {
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
     const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
+    if (files.length > 0) handleFileSelect(files[0]);
   };
 
   const handleFileSelect = (selectedFile: File) => {
-    if (selectedFile && selectedFile.type.startsWith('image/')) {
-      setFile(selectedFile);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+    if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
+      setErrorMessage('Unsupported file type. Use JPG, PNG, GIF, WebP, MP4, or WebM.');
+      return;
     }
+    if (selectedFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setErrorMessage(`File too large. Maximum is ${MAX_FILE_SIZE_MB}MB.`);
+      return;
+    }
+    setErrorMessage('');
+    setFile(selectedFile);
+    setIsVideo(selectedFile.type.startsWith('video/'));
+    const reader = new FileReader();
+    reader.onload = (e) => setFilePreview(e.target?.result as string);
+    reader.readAsDataURL(selectedFile);
   };
 
   const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
-    }
+    if (e.target.files && e.target.files[0]) handleFileSelect(e.target.files[0]);
   };
 
   const addProperty = () => {
@@ -129,34 +182,164 @@ const CreateNFTPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would handle the NFT creation/minting process
-    console.log('NFT Data:', {
-      file,
-      formData,
-      properties
-    });
+    if (!isConnected || !address) {
+      setErrorMessage('Please connect your wallet first.');
+      return;
+    }
+    if (!file || !formData.name || !formData.collection) {
+      setErrorMessage('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      setErrorMessage('');
+      setMintStep('uploading');
+
+      // Upload file + metadata to IPFS via Pinata
+      const filteredAttributes = properties
+        .filter((p) => p.trait_type && p.value)
+        .map((p) => ({ trait_type: p.trait_type, value: p.value }));
+
+      const metadataURI = await uploadNFTToPinata(file, {
+        name: formData.name,
+        description: formData.description,
+        attributes: filteredAttributes,
+      });
+
+      setMintStep('minting');
+
+      // Call mintNFT on the selected collection contract
+      writeContract({
+        address: formData.collection as `0x${string}`,
+        abi: NFT_COLLECTION_ABI,
+        functionName: 'mintNFT',
+        args: [metadataURI],
+      });
+    } catch (err) {
+      console.error('Mint error:', err);
+      setErrorMessage('Failed to mint NFT. Please try again.');
+      setMintStep('error');
+    }
   };
 
+  const handleReset = () => {
+    setFile(null);
+    setFilePreview('');
+    setIsVideo(false);
+    setProperties([]);
+    setFormData({ name: '', description: '', category: '', collection: '' });
+    setMintStep('form');
+    setErrorMessage('');
+    setTokenId(null);
+  };
+
+  // ── Minting/uploading/success/error overlays ──
+  if (mintStep === 'uploading' || mintStep === 'minting') {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
+        <div className="bg-surface rounded-2xl shadow-sm border border-muted p-8 text-center space-y-4 max-w-md w-full">
+          <Loader2 size={48} className="animate-spin text-primary mx-auto" />
+          <h2 className="text-xl font-semibold text-main">
+            {mintStep === 'uploading' ? 'Uploading to IPFS...' : 'Minting NFT...'}
+          </h2>
+          <p className="text-muted text-sm">
+            {mintStep === 'uploading'
+              ? 'Uploading your file and metadata to Pinata/IPFS.'
+              : 'Confirm the transaction in your wallet.'}
+          </p>
+          {hash && (
+            <a
+              href={`https://sepolia.etherscan.io/tx/${hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary text-sm hover:underline"
+            >
+              View on Etherscan <ExternalLink size={14} />
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (mintStep === 'success') {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
+        <div className="bg-surface rounded-2xl shadow-sm border border-muted p-8 text-center space-y-4 max-w-md w-full">
+          <CheckCircle size={48} className="text-green-500 mx-auto" />
+          <h2 className="text-xl font-semibold text-main">NFT Minted!</h2>
+          <p className="text-muted text-sm">
+            <strong className="text-main">{formData.name}</strong> has been minted
+            {tokenId !== null && <> with token ID <strong className="text-main">#{tokenId.toString()}</strong></>}.
+          </p>
+          {hash && (
+            <a
+              href={`https://sepolia.etherscan.io/tx/${hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary text-sm hover:underline"
+            >
+              View transaction <ExternalLink size={14} />
+            </a>
+          )}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Button variant="primary" size="md" sxclass="px-6" onClick={handleReset}>
+              Mint another NFT
+            </Button>
+            <Link to="/dashboard">
+              <Button variant="outline" size="md" sxclass="px-6">
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mintStep === 'error') {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
+        <div className="bg-surface rounded-2xl shadow-sm border border-muted p-8 text-center space-y-4 max-w-md w-full">
+          <AlertCircle size={48} className="text-red-500 mx-auto" />
+          <h2 className="text-xl font-semibold text-main">Something went wrong</h2>
+          <p className="text-red-500 text-sm">{errorMessage}</p>
+          <Button variant="outline" size="md" sxclass="px-6" onClick={handleReset}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main form ──
   return (
-    <RegularPageWrapper>
-      <div className="min-h-screen  py-6 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto container">
           <div className="text-center mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold text-main mb-2 mt-5">Create New NFT</h1>
             <p className="text-muted text-sm sm:text-base max-w-2xl mx-auto">
-              Upload your digital artwork and set up your NFT with detailed metadata and pricing
+              Upload your digital artwork or video and mint it to an NFT collection on Sepolia testnet
             </p>
           </div>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:gap-8">
-            {/* Left Column - Upload and Preview */}
+
+          {errorMessage && (
+            <div className="mb-6 flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+              <AlertCircle size={16} />
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleMint} className="grid grid-cols-1 gap-6 lg:gap-8">
+            {/* Upload and Preview */}
             <div className="space-y-6">
               {/* File Upload */}
               <div className="bg-surface rounded-2xl shadow-sm border border-muted p-6">
                 <h3 className="text-lg font-semibold text-main mb-4 flex items-center gap-2">
                   <Upload className="w-5 h-5 text-primary" />
-                  Upload Artwork
+                  Upload File
                 </h3>
       
                 <div
@@ -173,82 +356,91 @@ const CreateNFTPage: React.FC = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/mp4,video/webm,video/quicktime"
                     onChange={handleFileInputChange}
                     className="hidden"
                   />
       
-                  {imagePreview ? (
+                  {filePreview ? (
                     <div className="space-y-4">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="mx-auto max-h-64 rounded-lg shadow-md"
-                      />
-                      <p className="text-sm text-gray-600">{file?.name}</p>
+                      {isVideo ? (
+                        <video
+                          src={filePreview}
+                          controls
+                          className="mx-auto max-h-64 rounded-lg shadow-md"
+                        />
+                      ) : (
+                        <img
+                          src={filePreview}
+                          alt="Preview"
+                          className="mx-auto max-h-64 rounded-lg shadow-md"
+                        />
+                      )}
+                      <p className="text-sm text-muted">{file?.name}</p>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setFile(null);
-                          setImagePreview('');
+                          setFilePreview('');
+                          setIsVideo(false);
                         }}
                         className="text-red-500 hover:text-red-700 text-sm font-medium"
                       >
-                        Remove Image
+                        Remove file
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="w-16 h-16  rounded-full flex items-center justify-center mx-auto">
+                      <div className="flex items-center justify-center gap-3 mx-auto">
                         <ImageIcon className="w-8 h-8 text-gray-400" />
+                        <Film className="w-8 h-8 text-gray-400" />
                       </div>
                       <div>
-                        <p className="text-lg font-medium text-main">Drop your image here</p>
+                        <p className="text-lg font-medium text-main">Drop your file here</p>
                         <p className="text-sm text-muted mt-1">or click to browse files</p>
-                        <p className="text-xs text-muted mt-2">Supports: JPG, PNG, GIF (Max 50MB)</p>
+                        <p className="text-xs text-muted mt-2">
+                          Images: JPG, PNG, GIF, WebP · Videos: MP4, WebM (Max {MAX_FILE_SIZE_MB}MB)
+                        </p>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-              {/* NFT Preview */}
-              {imagePreview && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+
+              {/* Preview card */}
+              {filePreview && (
+                <div className="bg-surface rounded-2xl shadow-sm border border-muted p-6">
+                  <h3 className="text-lg font-semibold text-main mb-4 flex items-center gap-2">
                     <Eye className="w-5 h-5 text-primary" />
                     Preview
                   </h3>
-      
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4">
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                      <img
-                        src={imagePreview}
-                        alt="NFT Preview"
-                        className="w-full h-48 sm:h-56 object-cover"
-                      />
+                  <div className="bg-background rounded-xl p-4">
+                    <div className="bg-surface rounded-lg shadow-sm overflow-hidden">
+                      {isVideo ? (
+                        <video src={filePreview} controls className="w-full h-48 sm:h-56 object-cover" />
+                      ) : (
+                        <img src={filePreview} alt="NFT Preview" className="w-full h-48 sm:h-56 object-cover" />
+                      )}
                       <div className="p-4 space-y-2">
-                        <h4 className="font-semibold text-gray-900 truncate">
+                        <h4 className="font-semibold text-main truncate">
                           {formData.name || 'Untitled NFT'}
                         </h4>
-                        <p className="text-sm text-gray-600 line-clamp-2">
+                        <p className="text-sm text-muted line-clamp-2">
                           {formData.description || 'No description provided'}
                         </p>
-                        {formData.price && (
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                            <span className="text-sm text-gray-500">Price</span>
-                            <span className="font-semibold text-gray-900">
-                              {formData.price} {formData.currency}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex justify-between items-center pt-2 border-t border-muted">
+                          <span className="text-sm text-muted">Network</span>
+                          <span className="font-semibold text-main text-sm">Sepolia Testnet</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-            {/* Right Column - Form Fields */}
+
+            {/* Form Fields */}
             <div className="space-y-6">
               {/* Basic Information */}
               <div className="bg-surface rounded-2xl shadow-sm border border-muted p-6">
@@ -283,7 +475,7 @@ const CreateNFTPage: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-muted mb-2">
-                      Category *
+                      Category
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {categories.map((category) => {
@@ -308,93 +500,59 @@ const CreateNFTPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {/* Pricing */}
+
+              {/* Collection picker */}
               <div className="bg-surface rounded-2xl shadow-sm border border-muted p-6">
-                <h3 className="text-lg font-semibold text-main mb-4 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-primary" />
-                  Pricing & Supply
-                </h3>
-      
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-muted mb-2">
-                      Price *
-                    </label>
-                    <div className="flex rounded-lg border bg-background border-muted focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={formData.price}
-                        onChange={(e) => handleInputChange('price', e.target.value)}
-                        placeholder="0.00"
-                        className="flex-1 px-4 py-3 placeholder:text-main border-0 bg-background text-main rounded-l-lg focus:ring-0 focus:outline-none"
-                      />
-                      <select
-                        value={formData.currency}
-                        onChange={(e) => handleInputChange('currency', e.target.value)}
-                        className="px-3 py-3 bg-primary text-white border-0 rounded-r-lg focus:ring-0 focus:outline-none text-sm font-medium"
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-main flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-primary" />
+                    Collection *
+                  </h3>
+                  <Link to="/dashboard/collections/create" className="text-primary text-sm hover:underline flex items-center gap-1">
+                    <Plus size={14} /> New Collection
+                  </Link>
+                </div>
+                <p className="text-muted text-sm mb-4">Choose which collection to mint this NFT into.</p>
+
+                {collectionAddresses.length === 0 ? (
+                  <div className="text-center py-8 space-y-3">
+                    <Layers size={32} className="text-muted mx-auto" />
+                    <p className="text-muted text-sm">You don't have any collections yet.</p>
+                    <Link to="/dashboard/collections/create">
+                      <Button variant="outline" size="md" sxclass="px-5">
+                        <Plus size={16} /> Create your first collection
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {collectionAddresses.map((addr) => (
+                      <button
+                        key={addr}
+                        type="button"
+                        onClick={() => handleInputChange('collection', addr)}
+                        className={`p-4 rounded-lg border transition-all duration-200 flex items-center gap-3 text-left ${
+                          formData.collection === addr
+                            ? 'border-primary bg-primary text-white'
+                            : 'border-muted text-main hover:border-primary'
+                        }`}
                       >
-                        {currencies.map(currency => (
-                          <option key={currency} value={currency}>{currency}</option>
-                        ))}
-                      </select>
-                    </div>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          formData.collection === addr ? 'bg-white/20' : 'bg-primary/10'
+                        }`}>
+                          <Layers size={20} className={formData.collection === addr ? 'text-white' : 'text-primary'} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`text-xs font-mono truncate ${formData.collection === addr ? 'text-white/80' : 'text-muted'}`}>
+                            {addr}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-main mb-2">
-                      Supply
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formData.supply}
-                      onChange={(e) => handleInputChange('supply', e.target.value)}
-                      className="w-full px-4 py-3 border border-muted bg-background text-main rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-main mb-2">
-                      Royalties (%)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        step="0.1"
-                        value={formData.royalties}
-                        onChange={(e) => handleInputChange('royalties', e.target.value)}
-                        className="w-full px-4 py-3 pr-10 border border-muted bg-background text-main rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      />
-                      <Percent className="absolute right-3 top-3 w-5 h-5 text-main" />
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
-              {/* Blockchain Selection */}
-              <div className="bg-surface rounded-2xl shadow-sm border border-muted p-6">
-                <h3 className="text-lg font-semibold text-main mb-4">
-                  Blockchain
-                </h3>
-      
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {blockchains.map((blockchain) => (
-                    <button
-                      key={blockchain.value}
-                      type="button"
-                      onClick={() => handleInputChange('blockchain', blockchain.value)}
-                      className={`p-4 rounded-lg border transition-all text-main duration-200 flex items-center gap-3 ${
-                        formData.blockchain === blockchain.value
-                          ? 'border-blue-500 bg-primary text-white'
-                          : 'border-main hover:border-primary'
-                      }`}
-                    >
-                      <div className={`w-3 h-3 rounded-full ${formData.blockchain !== blockchain.value ? blockchain.color : 'bg-white'}`} />
-                      <span className="font-medium">{blockchain.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+
               {/* Properties */}
               <div className="bg-surface rounded-2xl shadow-sm border border-muted p-6">
                 <div className="flex justify-between items-center mb-4">
@@ -402,14 +560,7 @@ const CreateNFTPage: React.FC = () => {
                     <Tag className="w-5 h-5 text-primary" />
                     Properties
                   </h3>
-                  <Button
-                    type="button"
-                    onClick={addProperty}
-                    size='md'
-                    sxclass='px-4'
-                    // variant=''
-                    // className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm font-medium"
-                  >
+                  <Button type="button" onClick={addProperty} size='md' sxclass='px-4'>
                     <Plus className="w-4 h-4" />
                     Add Property
                   </Button>
@@ -435,7 +586,7 @@ const CreateNFTPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => removeProperty(property.id)}
-                        className="p-2 text-red-500 hover:text-red-700  hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -449,21 +600,24 @@ const CreateNFTPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              {/* Submit Button */}
+
+              {/* Submit */}
               <Button
                 type="submit"
-                disabled={!file || !formData.name || !formData.category}
+                disabled={!file || !formData.name || !formData.collection || !isConnected}
                 size='md'
                 fullWidth
-                // className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
               >
-                Create NFT
+                Mint NFT
               </Button>
+
+              <p className="text-xs text-muted text-center">
+                This will mint an ERC-721 NFT on Sepolia testnet. Make sure your wallet is connected to Sepolia.
+              </p>
             </div>
           </form>
         </div>
       </div>
-    </RegularPageWrapper>
   );
 };
 

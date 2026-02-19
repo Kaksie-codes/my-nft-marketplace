@@ -207,14 +207,17 @@ export function ipfsToHttp(ipfsURI: string): string {
 /**
  * Validate file before upload
  * @param file - File to validate
- * @param maxSizeMB - Maximum file size in MB (default 10MB)
+ * @param maxSizeMB - Maximum file size in MB (default 50MB)
  * @returns Error message if invalid, null if valid
  */
-export function validateImageFile(file: File, maxSizeMB: number = 10): string | null {
-  // Check file type
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+export function validateImageFile(file: File, maxSizeMB: number = 50): string | null {
+  // Check file type — images + videos
+  const validTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+    'video/mp4', 'video/webm', 'video/quicktime',
+  ];
   if (!validTypes.includes(file.type)) {
-    return 'Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.';
+    return 'Invalid file type. Please upload a JPEG, PNG, GIF, WebP image, or MP4/WebM video.';
   }
 
   // Check file size
