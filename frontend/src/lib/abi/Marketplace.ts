@@ -1,4 +1,4 @@
-export const MARKETPLACE_ABI =[
+export const MARKETPLACE_ABI = [
 	{
 		"inputs": [
 			{
@@ -30,6 +30,11 @@ export const MARKETPLACE_ABI =[
 			}
 		],
 		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ReentrancyGuardReentrantCall",
 		"type": "error"
 	},
 	{
@@ -112,7 +117,7 @@ export const MARKETPLACE_ABI =[
 				"type": "address"
 			},
 			{
-				"indexed": false,
+				"indexed": true,
 				"internalType": "address",
 				"name": "nft",
 				"type": "address"
@@ -128,6 +133,12 @@ export const MARKETPLACE_ABI =[
 				"internalType": "enum NFTMarketplace.SaleType",
 				"name": "saleType",
 				"type": "uint8"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
 			}
 		],
 		"name": "ListingCreated",
@@ -162,6 +173,69 @@ export const MARKETPLACE_ABI =[
 				"type": "uint256"
 			},
 			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "PriceUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "bidder",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RefundStored",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "bidder",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RefundWithdrawn",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			},
+			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "buyer",
@@ -176,6 +250,19 @@ export const MARKETPLACE_ABI =[
 		],
 		"name": "SaleCompleted",
 		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "MAX_AUCTION_DURATION",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
 	},
 	{
 		"inputs": [],
@@ -355,6 +442,11 @@ export const MARKETPLACE_ABI =[
 					},
 					{
 						"internalType": "uint256",
+						"name": "startingBid",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
 						"name": "price",
 						"type": "uint256"
 					},
@@ -367,6 +459,44 @@ export const MARKETPLACE_ABI =[
 				"internalType": "struct NFTMarketplace.Listing",
 				"name": "",
 				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "bidder",
+				"type": "address"
+			}
+		],
+		"name": "getPendingRefund",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			}
+		],
+		"name": "getTimeRemaining",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -480,6 +610,11 @@ export const MARKETPLACE_ABI =[
 			},
 			{
 				"internalType": "uint256",
+				"name": "startingBid",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
 				"name": "price",
 				"type": "uint256"
 			},
@@ -513,6 +648,25 @@ export const MARKETPLACE_ABI =[
 				"internalType": "address",
 				"name": "",
 				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "pendingRefunds",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -573,6 +727,31 @@ export const MARKETPLACE_ABI =[
 			}
 		],
 		"name": "updateMarketplaceFee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "newPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "updatePrice",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawRefund",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
