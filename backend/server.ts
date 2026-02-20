@@ -1,67 +1,61 @@
-// Import required modules using ES module syntax
-import 'dotenv/config'; // Alternative way to load .env variables
-import express from 'express'; // Express framework for building APIs
-import cors from 'cors'; // Enables Cross-Origin Resource Sharing
-import { connectDB } from './utils/connectDB'; 
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { connectDB } from './utils/connectDB';
 import { startAllIndexers } from './indexer';
+import { requestLogger } from './middleware/logger.middleware';
+import { errorHandler } from './middleware/error.middleware';
 
-import userRoutes from './routes/users.route';
+import userRoutes       from './routes/users.route';
 import collectionRoutes from './routes/collections.route';
-import nftRoutes from './routes/nfts.route';
-import listingRoutes from './routes/listings.route';
-import activityRoutes from './routes/activity.route';
+import nftRoutes        from './routes/nfts.route';
+import listingRoutes    from './routes/listings.route';
+import activityRoutes   from './routes/activity.route';
 
-
-
-// // Import route modules
-// import authRoutes from './routes/auth.route.js'; // Auth routes (signup, login)
-// import { errorHandler } from './middleware/error.middleware.js';
-
-
-// Create Express app
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 4000;
 
-// Middleware
-//this middleware helps the backend receive json data from the frontend
-// Parse incoming JSON requests
-// Enable CORS for all requests
+// ── Core middleware ──────────────────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.VITE_SERVER_DOMAIN || 'http://localhost:5173',
+  origin:      process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
+// ── Request logger ───────────────────────────────────────────────────────────
+// Logs every request with method, path, status code and response time.
+// e.g. GET /api/users/0xabc 200 - 12ms
+app.use(requestLogger);
 
-// Health check
+// ── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/', (_req, res) => res.send('NFT Marketplace API is running'));
 
-// Routes
-app.use('/api/users', userRoutes);
+// ── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/users',       userRoutes);
 app.use('/api/collections', collectionRoutes);
-app.use('/api/nfts', nftRoutes);
-app.use('/api/listings', listingRoutes);
-app.use('/api/activity', activityRoutes);
+app.use('/api/nfts',        nftRoutes);
+app.use('/api/listings',    listingRoutes);
+app.use('/api/activity',    activityRoutes);
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.send('NFT Marketplace API is running'); // Simple response to verify server is running
-});
+// ── 404 handler ──────────────────────────────────────────────────────────────
+app.use((_req, res) => res.status(404).json({ success: false, error: 'Not found' }));
 
+// ── Global error handler ─────────────────────────────────────────────────────
+// Must be the very last app.use and must have all 4 params for Express to
+// recognise it as an error handler, not a regular middleware.
+app.use(errorHandler);
 
-// Error handling middleware
-// app.use(errorHandler);
-
-// 404 handler
-app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
-
-// Start the Express server
-// Start
+// ── Startup ──────────────────────────────────────────────────────────────────
 async function main() {
-  await connectDB();         // DB must be connected first
-  await startAllIndexers();  // then start indexers — they need DB to be ready
+  // 1. Connect to MongoDB first — indexers and routes both need it
+  await connectDB();
 
+  // 2. Start blockchain event indexers — they need DB to be ready
+  await startAllIndexers();
+
+  // 3. Start HTTP server last
   app.listen(PORT, () => {
     console.log(`\n🌐 Server running on http://localhost:${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/health\n`);
@@ -72,5 +66,3 @@ main().catch((err) => {
   console.error('Fatal startup error:', err);
   process.exit(1);
 });
-
-

@@ -4,12 +4,12 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "type": "module",
   "main": "server.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.ts",
-    "dev": "nodemon server.ts"
+    "dev": "nodemon --exec tsx server.ts",
+    "start": "tsx server.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -17,6 +17,7 @@
     "@types/node": "^25.3.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
