@@ -5,7 +5,7 @@ import { Activity } from '../models/activity.model';
 import { NFT } from '../models/nft.model';
 import { parseAbiItem, type Address } from 'viem';
 
-const MARKETPLACE_ADDRESS = (process.env.MARKETPLACE_ADDRESS || '0x') as Address;
+const MARKETPLACE_CONTRACT_ADDRESS = (process.env.MARKETPLACE_CONTRACT_ADDRESS || '0x') as Address;
 
 // ── Event ABIs ───────────────────────────────────────────────────────────────
 // Must match the contract exactly — field names, types, and order.
@@ -39,7 +39,7 @@ export function startMarketplaceIndexer() {
 
   // ── ListingCreated ──────────────────────────────────────────────────────────
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.ListingCreated],
     eventName: 'ListingCreated',
     onLogs: async (logs) => {
@@ -91,7 +91,7 @@ export function startMarketplaceIndexer() {
 
   // ── ListingSold ─────────────────────────────────────────────────────────────
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.ListingSold],
     eventName: 'ListingSold',
     onLogs: async (logs) => {
@@ -136,7 +136,7 @@ export function startMarketplaceIndexer() {
 
   // ── AuctionEnded ────────────────────────────────────────────────────────────
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.AuctionEnded],
     eventName: 'AuctionEnded',
     onLogs: async (logs) => {
@@ -185,7 +185,7 @@ export function startMarketplaceIndexer() {
 
   // ── BidPlaced ───────────────────────────────────────────────────────────────
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.BidPlaced],
     eventName: 'BidPlaced',
     onLogs: async (logs) => {
@@ -239,7 +239,7 @@ export function startMarketplaceIndexer() {
 
   // ── ListingCancelled ────────────────────────────────────────────────────────
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.ListingCancelled],
     eventName: 'ListingCancelled',
     onLogs: async (logs) => {
@@ -276,7 +276,7 @@ export function startMarketplaceIndexer() {
 
   // ── PriceUpdated ────────────────────────────────────────────────────────────
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.PriceUpdated],
     eventName: 'PriceUpdated',
     onLogs: async (logs) => {
@@ -317,7 +317,7 @@ export function startMarketplaceIndexer() {
   // on-chain via the pendingRefunds mapping. Frontend reads this directly
   // via getPendingRefund(address) on the contract.
   publicClient.watchContractEvent({
-    address: MARKETPLACE_ADDRESS,
+    address: MARKETPLACE_CONTRACT_ADDRESS,
     abi: [events.RefundStored],
     eventName: 'RefundStored',
     onLogs: (logs) => {

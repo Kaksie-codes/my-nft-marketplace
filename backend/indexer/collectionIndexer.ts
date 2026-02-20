@@ -161,10 +161,10 @@ export async function startCollectionIndexer() {
   // These two indexers have separate responsibilities:
   //   factoryIndexer    → saves Collection documents to MongoDB
   //   collectionIndexer → watches NFT events on each collection contract
-  const FACTORY_ADDRESS = (process.env.FACTORY_ADDRESS || '0x') as Address;
+  const FACTORY_CONTRACT_ADDRESS = (process.env.FACTORY_CONTRACT_ADDRESS || '0x') as Address;
 
   publicClient.watchContractEvent({
-    address: FACTORY_ADDRESS,
+    address: FACTORY_CONTRACT_ADDRESS,
     abi: [CollectionCreatedAbi],
     eventName: 'CollectionCreated',
     onLogs: async (logs) => {

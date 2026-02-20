@@ -27,7 +27,7 @@ const ListingSchema = new Schema(
     blockNumber: { type: Number, required: true },
     txHash:      { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 export type IListing = InferSchemaType<typeof ListingSchema>;

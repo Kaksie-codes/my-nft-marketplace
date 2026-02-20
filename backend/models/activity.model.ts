@@ -28,7 +28,7 @@ const ActivitySchema = new Schema(
     blockNumber: { type: Number, required: true },
     txHash:      { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 // Per-user activity feeds (e.g. "show all activity where I am sender or receiver")

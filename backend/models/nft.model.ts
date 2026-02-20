@@ -21,7 +21,7 @@ const NFTSchema = new Schema(
     blockNumber: { type: Number, required: true },
     txHash:      { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 // Compound unique index — a tokenId must be unique within a collection

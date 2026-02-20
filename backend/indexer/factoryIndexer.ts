@@ -2,7 +2,7 @@ import { publicClient } from '../lib/viemClient';
 import { Collection } from '../models/collection.model';
 import { parseAbiItem, type Address } from 'viem';
 
-const FACTORY_ADDRESS = (process.env.FACTORY_ADDRESS || '0x') as Address;
+const FACTORY_CONTRACT_ADDRESS = (process.env.FACTORY_CONTRACT_ADDRESS || '0x') as Address;
 
 // FIX 1: Correct ABI — creator is FIRST indexed arg, collectionAddress is SECOND.
 // mintPrice is removed — it is NOT emitted by the CollectionCreated event.
@@ -15,7 +15,7 @@ export function startFactoryIndexer() {
   console.log('👁  Factory indexer started');
 
   publicClient.watchContractEvent({
-    address: FACTORY_ADDRESS,
+    address: FACTORY_CONTRACT_ADDRESS,
     abi: [CollectionCreatedAbi],
     eventName: 'CollectionCreated',
     onLogs: async (logs) => {
