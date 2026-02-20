@@ -16,9 +16,12 @@ import CreateNFTPage from './pages/CreateNFTPage';
 import DashboardWrapper from './components/DashboardWrapper';
 import DashboardPage from './pages/DashboardPage';
 import CreateCollectionPage from './pages/CreateCollectionPage';
+import { useUserSync } from './hooks/useUserSync';
 
 function App() {
-
+  // Watches wagmi's useAccount and automatically syncs wallet
+  // connect/disconnect to the backend and UserContext
+  useUserSync();
 
   return (
     <div className='bg-background'>
