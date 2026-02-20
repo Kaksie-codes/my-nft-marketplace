@@ -6,7 +6,7 @@ const rpcUrl = process.env.RPC_URL || 'https://sepolia.base.org';
 // Dynamically define the chain so this works with any EVM network
 const chain = defineChain({
   id: chainId,
-  name: 'Custom Chain',
+  name: process.env.CHAIN_NAME || 'Sepolia',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: [rpcUrl] } },
 });
@@ -14,4 +14,4 @@ const chain = defineChain({
 export const publicClient = createPublicClient({
   chain,
   transport: http(rpcUrl),
-});
+}); 
