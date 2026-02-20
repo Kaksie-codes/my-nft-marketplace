@@ -1,5 +1,5 @@
-// import { publicClient } from '../lib/viemClient';
-// import { NFT } from '../models/NFT';
+import { publicClient } from './lib/viemClient';
+import { NFT } from './models/nft.model';
 import { Activity } from './models/activity.model';
 import { Collection } from './models/collection.model';
 import { parseAbiItem, type Address } from 'viem';

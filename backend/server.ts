@@ -9,9 +9,9 @@ import { connectDB } from './utils/connectDB.js';
 
 // import userRoutes from './routes/users';
 // import collectionRoutes from './routes/collections';
-// import nftRoutes from './routes/nfts';
-// import listingRoutes from './routes/listings';
-// import activityRoutes from './routes/activity';
+import nftRoutes from './routes/nfts.route';
+import listingRoutes from './routes/listings.route';
+import activityRoutes from './routes/activity.route';
 
 
 
@@ -39,9 +39,9 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 // Routes
 // app.use('/api/users', userRoutes);
 // app.use('/api/collections', collectionRoutes);
-// app.use('/api/nfts', nftRoutes);
-// app.use('/api/listings', listingRoutes);
-// app.use('/api/activity', activityRoutes);
+app.use('/api/nfts', nftRoutes);
+app.use('/api/listings', listingRoutes);
+app.use('/api/activity', activityRoutes);
 
 // Health check endpoint
 app.get('/', (req, res) => {
