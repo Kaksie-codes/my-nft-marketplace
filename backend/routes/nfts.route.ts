@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { NFT } from '../models/nft.model';
 import { Listing } from '../models/listing.model';
+import { Activity } from '../models/activity.model';
 import { qs } from '../utils';
 import {
   sendSuccess,
@@ -11,6 +12,21 @@ import {
 } from '../utils/response';
 
 const router = Router();
+
+
+  // ── GET /api/nfts/stats ──────────────────────────────────────────────────────
+  router.get('/stats', async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const [totalNFTs, totalSales, totalArtists] = await Promise.all([
+        NFT.countDocuments({}),
+        Activity.countDocuments({ type: 'sale' }),
+        NFT.distinct('minter').then(r => r.length), // unique minters = unique artists
+      ]);
+      sendSuccess(res, { totalNFTs, totalSales, totalArtists });
+    } catch (err) {
+      sendServerError(res, err, 'GET /nfts/stats');
+    }
+  });
 
 // ── GET /api/nfts/category/:category ────────────────────────────────────────
 // Fetch all NFTs in a given category. Paginated.
