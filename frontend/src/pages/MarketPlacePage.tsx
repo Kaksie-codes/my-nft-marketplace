@@ -382,6 +382,7 @@ const MarketPlacePage = () => {
                             creatorName={getNFTCreatorName(nft)}
                             owner={nft.owner}
                             listing={null}
+                            category={nft.category}
                             backgroundColor="bg-background"
                             onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}
                           />
