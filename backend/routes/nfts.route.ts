@@ -36,10 +36,17 @@ router.get('/category/:category', async (req: Request<{ category: string }>, res
   const limit = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
   const skip  = (page - 1) * limit;
 
+  const KNOWN_CATEGORIES = ['art', 'collectibles', 'music', 'photography', 'video', 'utility', 'sports', 'virtual_worlds'];
+
+  // "other" means anything not in the 8 named categories
+  const filter = category === 'other'
+    ? { category: { $nin: KNOWN_CATEGORIES } }
+    : { category };
+
   try {
     const [nfts, total] = await Promise.all([
-      NFT.find({ category }).sort({ mintedAt: -1 }).skip(skip).limit(limit),
-      NFT.countDocuments({ category }),
+      NFT.find(filter).sort({ mintedAt: -1 }).skip(skip).limit(limit),
+      NFT.countDocuments(filter),
     ]);
     sendPaginated(res, nfts, total, page, limit);
   } catch (err) {
