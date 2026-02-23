@@ -47,6 +47,25 @@ router.get('/category/:category', async (req: Request<{ category: string }>, res
   }
 });
 
+
+// ── GET /api/nfts?page=1&limit=20 ───────────────────────────────────────────
+// Fetch all NFTs across all categories, sorted by most recently minted.
+router.get('/', async (req: Request, res: Response): Promise<void> => {
+  const page  = Math.max(1, parseInt(qs(req.query.page)  ?? '1'));
+  const limit = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
+  const skip  = (page - 1) * limit;
+
+  try {
+    const [nfts, total] = await Promise.all([
+      NFT.find({}).sort({ mintedAt: -1 }).skip(skip).limit(limit),
+      NFT.countDocuments({}),
+    ]);
+    sendPaginated(res, nfts, total, page, limit);
+  } catch (err) {
+    sendServerError(res, err, 'GET /nfts');
+  }
+});
+
 // ── GET /api/nfts/:collection/:tokenId ──────────────────────────────────────
 // Fetch a single NFT by collection address and token ID.
 // Also returns the active listing for this NFT if one exists.

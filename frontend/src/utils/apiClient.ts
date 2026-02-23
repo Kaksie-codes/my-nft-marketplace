@@ -223,6 +223,9 @@ export const nftsApi = {
 
   getByCategory: (category: string, page = 1, limit = 20) =>
     api.getPaginated<NFT>(`/api/nfts/category/${category}?page=${page}&limit=${limit}`),
+
+  getAll: (page = 1, limit = 20) =>
+  api.getPaginated<NFT>(`/api/nfts?page=${page}&limit=${limit}`),
 };
 
 // Listings
