@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Menu, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import Logo from '../Logo';
 import ThemeToggler from '../ThemeToggler';
 import Button from '../button/Button';
@@ -43,13 +43,19 @@ const Header: React.FC = () => {
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-8 flex-1">
             {navLinks.map(link => (
-              <Link
+              <NavLink
                 key={link.path}
                 to={link.path}
-                className="text-sm text-main hover:text-primary transition-colors"
+                className={({ isActive }) =>
+                  `text-sm font-medium transition-colors relative ${
+                    isActive
+                      ? 'text-primary after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-[2px] after:bg-primary after:rounded-full'
+                      : 'text-main hover:text-primary'
+                  }`
+                }
               >
                 {link.label}
-              </Link>
+              </NavLink>
             ))}
           </nav>
 
@@ -99,13 +105,20 @@ const Header: React.FC = () => {
           <div className="lg:hidden absolute top-16 left-0 w-full bg-surface border-t border-muted shadow-lg z-50">
             <div className="px-4 py-4 flex flex-col gap-2">
               {navLinks.map(link => (
-                <button
+                <NavLink
                   key={link.path}
-                  onClick={() => handleMobileLink(link.path)}
-                  className="text-left px-3 py-2.5 text-sm text-main hover:text-primary hover:bg-background rounded-lg transition-colors"
+                  to={link.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `px-3 py-2.5 text-sm rounded-lg transition-colors ${
+                      isActive
+                        ? 'text-primary bg-primary/10 font-medium'
+                        : 'text-main hover:text-primary hover:bg-background'
+                    }`
+                  }
                 >
                   {link.label}
-                </button>
+                </NavLink>
               ))}
               {isConnected && (
                 <button

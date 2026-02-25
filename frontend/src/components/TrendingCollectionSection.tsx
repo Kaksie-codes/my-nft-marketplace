@@ -1,36 +1,38 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TrendingCollectionCard from './TrendingCollectionCard';
-import { collectionsApi, type Collection, type NFT } from '../utils/apiClient';
+import { collectionsApi, usersApi, type Collection, type NFT, type UserProfile } from '../utils/apiClient';
+import { resolveIpfsUrl } from '../utils/ipfs';
 
 interface CollectionWithNFTs {
-  collection: Collection;
-  nfts:       NFT[];
+  collection:  Collection;
+  nfts:        NFT[];
+  creatorUser: UserProfile | null;
 }
 
 const TrendingCollectionSection = () => {
-  const [data, setData]       = useState<CollectionWithNFTs[]>([]);
+  const navigate            = useNavigate();
+  const [data, setData]     = useState<CollectionWithNFTs[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchTrending = async () => {
       try {
-        // Fetch more than 3 upfront so we still have enough after filtering empty ones
         const res         = await collectionsApi.getAll({ page: 1, limit: 10 });
         const collections = res.data;
 
-        // Fetch up to 3 NFTs per collection for thumbnails
+        // Fetch NFTs and creator profile in parallel for each collection
         const withNFTs = await Promise.all(
           collections.map(async (col) => {
-            try {
-              const nftRes = await collectionsApi.getNFTs(col.address, 1, 3);
-              return { collection: col, nfts: nftRes.data };
-            } catch {
-              return { collection: col, nfts: [] };
-            }
+            const [nftRes, creatorUser] = await Promise.all([
+              collectionsApi.getNFTs(col.address, 1, 3).catch(() => ({ data: [] as NFT[] })),
+              usersApi.getProfile(col.creator).catch(() => null),
+            ]);
+            return { collection: col, nfts: nftRes.data, creatorUser };
           })
         );
 
-        // Filter out collections with no NFTs then take the top 3
+        // Filter out empty collections then take top 3
         const nonEmpty = withNFTs
           .filter(({ nfts }) => nfts.length > 0)
           .slice(0, 3);
@@ -48,7 +50,7 @@ const TrendingCollectionSection = () => {
 
   const getNFTImage = (nft: NFT): string => {
     const img = nft.metadata?.image;
-    return typeof img === 'string' ? img : '/nft-placeholder.png';
+    return resolveIpfsUrl(typeof img === 'string' ? img : '');
   };
 
   return (
@@ -85,19 +87,30 @@ const TrendingCollectionSection = () => {
         {/* Collections grid */}
         {!loading && data.length > 0 && (
           <div className="mt-[40px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[20px]">
-            {data.map(({ collection, nfts }) => {
-              const bannerImg  = nfts[0] ? getNFTImage(nfts[0]) : '/nft-placeholder.png';
-              const thumbnails = nfts.map(getNFTImage);
+            {data.map(({ collection, nfts, creatorUser }) => {
+              const bannerImg   = nfts[0] ? getNFTImage(nfts[0]) : '/nft-placeholder.png';
+              const thumbnails  = nfts.map(getNFTImage);
+              const creatorName = creatorUser?.username
+                || `${collection.creator.slice(0, 6)}...${collection.creator.slice(-4)}`;
+              const creatorImg  = creatorUser?.avatar
+                ? resolveIpfsUrl(creatorUser.avatar)
+                : undefined;
 
               return (
-                <TrendingCollectionCard
+                <div
                   key={collection._id}
-                  bannerImg={bannerImg}
-                  thumbnails={thumbnails}
-                  count={collection.nftCount ?? 0}
-                  title={collection.name}
-                  creatorName={`${collection.creator.slice(0, 6)}...${collection.creator.slice(-4)}`}
-                />
+                  className="cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => navigate(`/collection/${collection.address}`)}
+                >
+                  <TrendingCollectionCard
+                    bannerImg={bannerImg}
+                    thumbnails={thumbnails}
+                    count={collection.nftCount ?? 0}
+                    title={collection.name}
+                    creatorName={creatorName}
+                    creatorImg={creatorImg}
+                  />
+                </div>
               );
             })}
           </div>

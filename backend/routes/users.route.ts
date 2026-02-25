@@ -58,25 +58,34 @@ router.put('/profile', async (req: Request, res: Response): Promise<void> => {
 // ── GET /api/users/top-creators ──────────────────────────────────────────────
 // IMPORTANT: Must be defined BEFORE /:address to avoid Express matching
 // "top-creators" as a wallet address parameter.
-// Returns top 8 creators ranked by number of NFTs minted.
-router.get('/top-creators', async (_req: Request, res: Response): Promise<void> => {
+// Supports ?limit=50&period=24h|7d|30d (omit period for all-time)
+router.get('/top-creators', async (req: Request, res: Response): Promise<void> => {
+  const limit  = Math.min(50, parseInt(qs(req.query.limit)  ?? '8'));
+  const period = qs(req.query.period); // '24h' | '7d' | '30d' | undefined
+
+  // Build optional time filter based on period param
+  const matchFilter: Record<string, unknown> = {};
+  if (period === '24h') matchFilter.mintedAt = { $gte: new Date(Date.now() - 1  * 24 * 60 * 60 * 1000) };
+  if (period === '7d')  matchFilter.mintedAt = { $gte: new Date(Date.now() - 7  * 24 * 60 * 60 * 1000) };
+  if (period === '30d') matchFilter.mintedAt = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+
   try {
-    // Aggregate NFTs grouped by minter, count descending, top 8
     const topMinters = await NFT.aggregate([
+      { $match: matchFilter },
       { $group: { _id: '$minter', nftCount: { $sum: 1 } } },
       { $sort:  { nftCount: -1 } },
-      { $limit: 8 },
+      { $limit: limit },
     ]);
 
-    // Enrich each result with username and avatar from the users collection
+    // Enrich with username and avatar from users collection
     const results = await Promise.all(
       topMinters.map(async ({ _id: address, nftCount }: { _id: string; nftCount: number }) => {
         const user = await User.findOne({ address });
         return {
           address,
           nftCount,
-          username: user?.username  ?? null,
-          avatar:   user?.avatar    ?? null,
+          username: user?.username ?? null,
+          avatar:   user?.avatar   ?? null,
         };
       })
     );
@@ -144,7 +153,6 @@ export default router;
 
 
 
-
 // import { Router, Request, Response } from 'express';
 // import { User } from '../models/user.model';
 // import { NFT } from '../models/nft.model';
@@ -199,6 +207,38 @@ export default router;
 //     sendSuccess(res, user);
 //   } catch (err) {
 //     sendServerError(res, err, 'PUT /users/profile');
+//   }
+// });
+
+// // ── GET /api/users/top-creators ──────────────────────────────────────────────
+// // IMPORTANT: Must be defined BEFORE /:address to avoid Express matching
+// // "top-creators" as a wallet address parameter.
+// // Returns top 8 creators ranked by number of NFTs minted.
+// router.get('/top-creators', async (_req: Request, res: Response): Promise<void> => {
+//   try {
+//     // Aggregate NFTs grouped by minter, count descending, top 8
+//     const topMinters = await NFT.aggregate([
+//       { $group: { _id: '$minter', nftCount: { $sum: 1 } } },
+//       { $sort:  { nftCount: -1 } },
+//       { $limit: 8 },
+//     ]);
+
+//     // Enrich each result with username and avatar from the users collection
+//     const results = await Promise.all(
+//       topMinters.map(async ({ _id: address, nftCount }: { _id: string; nftCount: number }) => {
+//         const user = await User.findOne({ address });
+//         return {
+//           address,
+//           nftCount,
+//           username: user?.username  ?? null,
+//           avatar:   user?.avatar    ?? null,
+//         };
+//       })
+//     );
+
+//     sendSuccess(res, results);
+//   } catch (err) {
+//     sendServerError(res, err, 'GET /users/top-creators');
 //   }
 // });
 

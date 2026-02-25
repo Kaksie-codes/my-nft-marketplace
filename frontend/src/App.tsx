@@ -32,6 +32,7 @@ function App() {
      
       
       <Route path="/marketplace" element={<MarketPlacePage />} />
+      <Route path="/rankings" element={<RankingsPage/>} />
       <Route path="/collection/:collectionName" element={<CollectionNFTsPage />} />
       <Route path="/dashboard" element={<DashboardWrapper />}>
         <Route index element={<DashboardPage />} />
