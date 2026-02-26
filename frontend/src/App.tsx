@@ -19,7 +19,6 @@ import CreateCollectionPage from './pages/CreateCollectionPage';
 import { useUserSync } from './hooks/useUserSync';
 import ListNFTPage from './pages/ListNFTPage';
 import RegularPageWrapper from './components/RegularPageWrapper';
-import MyNFTsPage from './pages/MyNFTsPage';
 
 function App() {
   // Watches wagmi's useAccount and automatically syncs wallet
@@ -42,8 +41,7 @@ function App() {
         <Route path="profile/:address" element={<ProfilePage />} />
         <Route path="list/:collection/:tokenId" element={<ListNFTPage />} />
         <Route path="create" element={<CreateNFTPage />} />
-        <Route path="collections/create" element={<CreateCollectionPage />} />
-        <Route path="my-nfts" element={<MyNFTsPage />} />        
+        <Route path="collections/create" element={<CreateCollectionPage />} />        
       </Route>
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />

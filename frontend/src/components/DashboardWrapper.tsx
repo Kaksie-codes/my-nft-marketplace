@@ -41,7 +41,6 @@ const sidebarLinks = [
   { name: 'My Profile',    icon: Image,           path: address ? `/dashboard/profile/${address}` : '/dashboard/profile' },
   { name: 'Create NFT',    icon: Upload,           path: '/dashboard/create' },
   { name: 'Collections',   icon: Layers,           path: '/dashboard/collections/create' },
-  { name: 'My NFTs', icon: Image, path: '/dashboard/my-nfts' },
   { name: 'Notifications', icon: Bell,             path: '/dashboard/notifications' },
   { name: 'Settings',      icon: Settings,         path: '/dashboard/settings' },
   { name: 'Help',          icon: HelpCircle,       path: '/dashboard/help' },
