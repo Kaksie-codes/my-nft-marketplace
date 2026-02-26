@@ -35,7 +35,7 @@ function App() {
       <Route path="/profile/:address" element={<RegularPageWrapper><ProfilePage /></RegularPageWrapper>} />
       <Route path="/marketplace" element={<MarketPlacePage />} />
       <Route path="/rankings" element={<RankingsPage/>} />
-      <Route path="/collection/:collectionName" element={<CollectionNFTsPage />} />
+      <Route path="/collection/:collectionAddress" element={<CollectionNFTsPage />} />
       <Route path="/dashboard" element={<DashboardWrapper />}>
         <Route index element={<DashboardPage />} />
         <Route path="profile/:address" element={<ProfilePage />} />
