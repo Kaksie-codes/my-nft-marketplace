@@ -96,11 +96,11 @@ function CopyButton({ text }: { text: string }) {
 type ModalStep = 'confirm' | 'pending' | 'success' | 'error';
 
 interface TxModalProps {
-  mode: 'buy' | 'bid';
+  mode: 'buy' | 'bid' | 'cancel';
   listing: { listingId: string; price: string; highestBid?: string };
   nftName: string;
   onClose: () => void;
-  onSuccess: () => void; // called when user clicks Done after success
+  onSuccess: () => void;
 }
 
 function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
@@ -115,8 +115,6 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
   const { isSuccess: txConfirmed, isError: txFailed } =
     useWaitForTransactionReceipt({ hash: txHash });
 
-  // Move to success step when tx is mined — do NOT close modal here.
-  // Closing is handled by the Done button so the user sees the success state.
   useEffect(() => {
     if (txConfirmed) setStep('success');
   }, [txConfirmed]);
@@ -136,6 +134,22 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
       functionName: 'buy',
       args:         [BigInt(listing.listingId)],
       value:        BigInt(listing.price),
+    }, {
+      onSuccess: (hash) => setTxHash(hash),
+      onError: (err) => {
+        setTxError(err.message.includes('rejected') ? 'Transaction rejected.' : err.message);
+        setStep('error');
+      },
+    });
+  };
+
+  const handleCancel = () => {
+    setStep('pending');
+    writeContract({
+      address:      CONTRACT_ADDRESSES.marketplace as `0x${string}`,
+      abi:          MARKETPLACE_ABI,
+      functionName: 'cancelListing',
+      args:         [BigInt(listing.listingId)],
     }, {
       onSuccess: (hash) => setTxHash(hash),
       onError: (err) => {
@@ -190,7 +204,7 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-main">
-            {mode === 'buy' ? 'Confirm Purchase' : 'Place a Bid'}
+            {mode === 'buy' ? 'Confirm Purchase' : mode === 'bid' ? 'Place a Bid' : 'Cancel Listing'}
           </h2>
           {step !== 'pending' && (
             <button onClick={onClose} className="text-muted hover:text-main transition-colors">
@@ -207,7 +221,7 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
               <p className="text-main font-semibold">{nftName}</p>
             </div>
 
-            {mode === 'buy' ? (
+            {mode === 'buy' && (
               <>
                 <div className="bg-background rounded-xl p-4 space-y-1">
                   <p className="text-xs text-muted uppercase tracking-wider">Total Price</p>
@@ -219,7 +233,9 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
                   <Tag size={16} /> Confirm Purchase
                 </Button>
               </>
-            ) : (
+            )}
+
+            {mode === 'bid' && (
               <>
                 <div className="bg-background rounded-xl p-4 space-y-1">
                   <p className="text-xs text-muted uppercase tracking-wider mb-2">
@@ -227,10 +243,7 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
                   </p>
                   <div className="relative">
                     <input
-                      type="number"
-                      min="0"
-                      step="0.001"
-                      value={bidInput}
+                      type="number" min="0" step="0.001" value={bidInput}
                       onChange={e => { setBidInput(e.target.value); setBidError(''); }}
                       placeholder="0.00"
                       className={`w-full px-4 py-3 pr-14 bg-surface border rounded-xl text-main text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary transition ${
@@ -242,15 +255,33 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
                   {bidError && <p className="text-red-500 text-xs mt-1">{bidError}</p>}
                 </div>
                 <Button variant="primary" size="lg" fullWidth onClick={handleBid}
-                  disabled={!bidInput}
-                  sxclass="flex items-center justify-center gap-2">
+                  disabled={!bidInput} sxclass="flex items-center justify-center gap-2">
                   <Gavel size={16} /> Place Bid
                 </Button>
               </>
             )}
 
+            {mode === 'cancel' && (
+              <>
+                <div className="bg-background rounded-xl p-4 space-y-1">
+                  <p className="text-sm text-muted">
+                    This will cancel your listing and return the NFT to your wallet.
+                    {listing.highestBid && listing.highestBid !== '0' && (
+                      <span className="block mt-2 text-yellow-500 font-medium">
+                        ⚠️ There is an active bid of {toEth(listing.highestBid)}. Cancelling will refund the bidder.
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <Button variant="outline" size="lg" fullWidth onClick={handleCancel}
+                  sxclass="flex items-center justify-center gap-2 border-red-500 text-red-500 hover:bg-red-500/10">
+                  <X size={16} /> Confirm Cancel
+                </Button>
+              </>
+            )}
+
             <Button variant="outline" size="md" fullWidth onClick={onClose}>
-              Cancel
+              {mode === 'cancel' ? 'Keep Listing' : 'Cancel'}
             </Button>
           </>
         )}
@@ -260,7 +291,7 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
           <div className="text-center space-y-4 py-4">
             <Loader2 size={48} className="animate-spin text-primary mx-auto" />
             <p className="text-main font-semibold">
-              {mode === 'buy' ? 'Processing Purchase...' : 'Placing Bid...'}
+              {mode === 'buy' ? 'Processing Purchase...' : mode === 'bid' ? 'Placing Bid...' : 'Cancelling Listing...'}
             </p>
             <p className="text-muted text-sm">
               Confirm the transaction in your wallet and wait for it to be mined.
@@ -279,12 +310,14 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
           <div className="text-center space-y-4 py-4">
             <CheckCircle size={48} className="text-green-500 mx-auto" />
             <p className="text-main font-semibold">
-              {mode === 'buy' ? '🎉 Purchase Successful!' : '🎉 Bid Placed!'}
+              {mode === 'buy' ? '🎉 Purchase Successful!' : mode === 'bid' ? '🎉 Bid Placed!' : '✅ Listing Cancelled'}
             </p>
             <p className="text-muted text-sm">
               {mode === 'buy'
                 ? `You are now the owner of ${nftName}.`
-                : `Your bid has been placed on ${nftName}.`}
+                : mode === 'bid'
+                ? `Your bid has been placed on ${nftName}.`
+                : `Your listing has been cancelled and the NFT will be returned to your wallet.`}
             </p>
             {txHash && (
               <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
@@ -292,10 +325,7 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
                 View on Etherscan <ExternalLink size={13} />
               </a>
             )}
-            {/* Done closes modal AND triggers silent refetch in parent */}
-            <Button variant="primary" size="md" fullWidth onClick={onSuccess}>
-              Done
-            </Button>
+            <Button variant="primary" size="md" fullWidth onClick={onSuccess}>Done</Button>
           </div>
         )}
 
@@ -306,12 +336,8 @@ function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
             <p className="text-main font-semibold">Something went wrong</p>
             <p className="text-red-500 text-sm break-words">{txError}</p>
             <div className="flex gap-3">
-              <Button variant="outline" size="md" fullWidth onClick={() => setStep('confirm')}>
-                Try Again
-              </Button>
-              <Button variant="outline" size="md" fullWidth onClick={onClose}>
-                Close
-              </Button>
+              <Button variant="outline" size="md" fullWidth onClick={() => setStep('confirm')}>Try Again</Button>
+              <Button variant="outline" size="md" fullWidth onClick={onClose}>Close</Button>
             </div>
           </div>
         )}
@@ -335,12 +361,37 @@ const NFTDetailPage = () => {
   const [moreNFTs,       setMoreNFTs]       = useState<NFT[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState('');
-  const [modalMode,      setModalMode]      = useState<'buy' | 'bid' | null>(null);
+  const [modalMode,      setModalMode]      = useState<'buy' | 'bid' | 'cancel' | null>(null);
 
-  const isOwner = !!(isConnected && address && nft?.owner &&
-    address.toLowerCase() === nft.owner.toLowerCase());
+  const listing = (nft as (NFT & { activeListing: Listing | null }) | null)?.activeListing ?? null;
 
-  // Full fetch — shows loading spinner, used on mount
+  // ── Who actually owns / is selling this NFT? ─────────────────────────────
+  // When an NFT is listed, the marketplace contract holds it in escrow.
+  // nft.owner becomes the marketplace address. The true "owner" from the
+  // user's perspective is listing.seller (the address that listed it).
+  const marketplaceAddr  = CONTRACT_ADDRESSES.marketplace.toLowerCase();
+  const isEscrowed       = nft?.owner?.toLowerCase() === marketplaceAddr;
+  // The real owner: seller if escrowed, otherwise nft.owner
+  const effectiveOwner   = isEscrowed && listing?.seller
+    ? listing.seller.toLowerCase()
+    : nft?.owner?.toLowerCase() ?? '';
+
+  // isOwner: true if connected wallet is the seller (escrowed) or direct owner
+  const isOwner = !!(
+    isConnected &&
+    address &&
+    effectiveOwner &&
+    address.toLowerCase() === effectiveOwner
+  );
+
+  // isSeller: true only when the NFT is actively listed by connected wallet
+  const isSeller = !!(
+    isConnected &&
+    address &&
+    listing?.seller &&
+    address.toLowerCase() === listing.seller.toLowerCase()
+  );
+
   const fetchAll = useCallback(async () => {
     if (!collectionAddress || !tokenId) return;
     setLoading(true);
@@ -349,11 +400,17 @@ const NFTDetailPage = () => {
       const nftData = await nftsApi.getOne(collectionAddress, tokenId);
       setNft(nftData);
 
+      // Determine the real owner for profile fetching
+      const nftListing = (nftData as NFT & { activeListing: Listing | null }).activeListing;
+      const realOwnerAddr = nftData.owner.toLowerCase() === CONTRACT_ADDRESSES.marketplace.toLowerCase()
+        ? nftListing?.seller ?? nftData.owner
+        : nftData.owner;
+
       const [col, creator, owner] = await Promise.all([
         collectionsApi.getOne(collectionAddress).catch(() => null),
         usersApi.getProfile(nftData.minter).catch(() => null),
-        nftData.owner !== nftData.minter
-          ? usersApi.getProfile(nftData.owner).catch(() => null)
+        realOwnerAddr !== nftData.minter
+          ? usersApi.getProfile(realOwnerAddr).catch(() => null)
           : Promise.resolve(null),
       ]);
       setCollection(col);
@@ -370,20 +427,18 @@ const NFTDetailPage = () => {
     }
   }, [collectionAddress, tokenId]);
 
-  // Silent fetch — no loading spinner, used after buy/bid so UI updates smoothly
   const silentRefetch = useCallback(async () => {
     if (!collectionAddress || !tokenId) return;
     try {
       const nftData = await nftsApi.getOne(collectionAddress, tokenId);
       setNft(nftData);
     } catch {
-      // Non-critical — user can refresh manually if needed
+      // Non-critical
     }
   }, [collectionAddress, tokenId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Refetch when user comes back to this tab (e.g. after listing)
   useEffect(() => {
     const handleFocus = () => fetchAll();
     window.addEventListener('focus', handleFocus);
@@ -401,14 +456,16 @@ const NFTDetailPage = () => {
 
   const creatorName = creatorProfile?.username || (nft ? shortAddr(nft.minter) : '');
   const creatorImg  = creatorProfile?.avatar ? resolveIpfsUrl(creatorProfile.avatar) : undefined;
-  const ownerName   = isOwner ? 'You' : (ownerProfile?.username || (nft ? shortAddr(nft.owner) : ''));
-  const ownerImg    = ownerProfile?.avatar ? resolveIpfsUrl(ownerProfile.avatar) : undefined;
 
-  const listing    = (nft as NFT & { activeListing: Listing | null })?.activeListing ?? null;
+  // Owner display: use seller profile if escrowed, else ownerProfile
+  const displayOwnerAddr = effectiveOwner;
+  const ownerName = address?.toLowerCase() === effectiveOwner
+    ? 'You'
+    : (ownerProfile?.username || (effectiveOwner ? shortAddr(effectiveOwner) : ''));
+  const ownerImg  = ownerProfile?.avatar ? resolveIpfsUrl(ownerProfile.avatar) : undefined;
+
   const isAuction  = listing?.type === 'auction';
   const auctionEnd = listing?.endTime ? new Date(listing.endTime) : null;
-
-  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -436,16 +493,12 @@ const NFTDetailPage = () => {
       <div className="min-h-screen bg-background text-main">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
-          {/* Back button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-muted hover:text-primary transition-colors mb-8 group"
-          >
+          <button onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-muted hover:text-primary transition-colors mb-8 group">
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
             <span className="text-sm font-medium">Back</span>
           </button>
 
-          {/* Main grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
             {/* ── Left: Image ── */}
@@ -453,10 +506,8 @@ const NFTDetailPage = () => {
               <TiltImage src={nftImage} alt={nftName} />
 
               {collection && (
-                <button
-                  onClick={() => navigate(`/collection/${collectionAddress}`)}
-                  className="flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors"
-                >
+                <button onClick={() => navigate(`/collection/${collectionAddress}`)}
+                  className="flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors">
                   <Layers size={14} />
                   <span>{collection.name}</span>
                   <ArrowRight size={12} />
@@ -509,8 +560,11 @@ const NFTDetailPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted uppercase tracking-wider">Owner</span>
-                  <button onClick={() => navigate(`/profile/${nft.owner}`)}
+                  {/* Label changes to "Seller" when listed, "Owner" otherwise */}
+                  <span className="text-xs text-muted uppercase tracking-wider">
+                    {isEscrowed ? 'Seller' : 'Owner'}
+                  </span>
+                  <button onClick={() => navigate(`/profile/${displayOwnerAddr}`)}
                     className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                     {ownerImg
                       ? <img src={ownerImg} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -552,15 +606,19 @@ const NFTDetailPage = () => {
                         }
                       </p>
                       {isAuction && listing.highestBid && listing.highestBid !== '0' && (
-                        <p className="text-xs text-muted mt-1">
-                          Starting bid: {toEth(listing.price)}
-                        </p>
+                        <p className="text-xs text-muted mt-1">Starting bid: {toEth(listing.price)}</p>
                       )}
                     </div>
 
-                    {isOwner ? (
-                      <Button variant="outline" size="lg" sxclass="w-full">
-                        Cancel Listing
+                    {/* isSeller → Cancel Listing */}
+                    {isSeller ? (
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        sxclass="w-full flex items-center justify-center gap-2 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                        onClick={() => setModalMode('cancel')}
+                      >
+                        <X size={16} /> Cancel Listing
                       </Button>
                     ) : !isConnected ? (
                       <Button variant="primary" size="lg" sxclass="w-full">
@@ -584,8 +642,7 @@ const NFTDetailPage = () => {
                   <>
                     <p className="text-sm text-muted">You own this NFT. List it for sale on the marketplace.</p>
                     <Button
-                      variant="primary"
-                      size="lg"
+                      variant="primary" size="lg"
                       sxclass="w-full flex items-center justify-center gap-2"
                       onClick={() => navigate(`/dashboard/list/${collectionAddress}/${tokenId}`)}
                     >
@@ -665,15 +722,9 @@ const NFTDetailPage = () => {
                   const img   = resolveIpfsUrl(typeof n.metadata?.image === 'string' ? n.metadata.image : '');
                   const title = typeof n.metadata?.name === 'string' ? n.metadata.name : `Token #${n.tokenId}`;
                   return (
-                    <NFTCard
-                      key={n._id}
-                      image={img}
-                      title={title}
-                      creatorImage={creatorImg}
-                      creatorName={creatorName}
-                      owner={n.owner}
-                      listing={n.listing ?? null}
-                      category={n.category}
+                    <NFTCard key={n._id} image={img} title={title}
+                      creatorImage={creatorImg} creatorName={creatorName}
+                      owner={n.owner} listing={n.listing ?? null} category={n.category}
                       backgroundColor="bg-surface"
                       onClick={() => navigate(`/nft/${collectionAddress}/${n.tokenId}`)}
                     />
@@ -686,7 +737,6 @@ const NFTDetailPage = () => {
         </div>
       </div>
 
-      {/* ── Buy / Bid Modal ── */}
       {modalMode && listing && (
         <TxModal
           mode={modalMode}
@@ -694,8 +744,6 @@ const NFTDetailPage = () => {
           nftName={nftName}
           onClose={() => setModalMode(null)}
           onSuccess={() => {
-            // Close modal, then silently refetch after 3s to give
-            // the indexer time to process the SaleCompleted / BidPlaced event
             setModalMode(null);
             setTimeout(() => silentRefetch(), 3000);
           }}
@@ -710,21 +758,25 @@ export default NFTDetailPage;
 
 
 
+
+
 // import { useEffect, useState, useRef, useCallback } from 'react';
 // import { useParams, useNavigate } from 'react-router-dom';
-// import { useAccount } from 'wagmi';
-// import { formatEther } from 'viem';
+// import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+// import { formatEther, parseEther } from 'viem';
 // import {
 //   ArrowLeft, Globe, Tag, Gavel, Clock, ExternalLink,
-//   Copy, Check, User, Layers, Calendar, Hash, Loader2, ArrowRight
+//   Copy, Check, User, Layers, Calendar, Hash, Loader2, ArrowRight,
+//   X, CheckCircle, AlertCircle,
 // } from 'lucide-react';
 // import RegularPageWrapper from '../components/RegularPageWrapper';
-// // import Avatar from '../components/avatar';
 // import Button from '../components/button/Button';
 // import NFTCard from '../components/NFTCard';
 // import FlipCountdown from '../components/FlipCountdown';
-// import { nftsApi, collectionsApi, usersApi, type NFT, type Collection, type UserProfile } from '../utils/apiClient';
+// import { nftsApi, collectionsApi, usersApi, type NFT, type Collection, type UserProfile, type Listing } from '../utils/apiClient';
 // import { resolveIpfsUrl } from '../utils/ipfs';
+// import { MARKETPLACE_ABI } from '../lib/abi/Marketplace';
+// import { CONTRACT_ADDRESSES } from '../lib/config';
 
 // // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -801,11 +853,241 @@ export default NFTDetailPage;
 //   );
 // }
 
+// // ── Transaction Modal ─────────────────────────────────────────────────────────
+
+// type ModalStep = 'confirm' | 'pending' | 'success' | 'error';
+
+// interface TxModalProps {
+//   mode: 'buy' | 'bid';
+//   listing: { listingId: string; price: string; highestBid?: string };
+//   nftName: string;
+//   onClose: () => void;
+//   onSuccess: () => void; // called when user clicks Done after success
+// }
+
+// function TxModal({ mode, listing, nftName, onClose, onSuccess }: TxModalProps) {
+//   const [step,     setStep]     = useState<ModalStep>('confirm');
+//   const [txHash,   setTxHash]   = useState<`0x${string}` | undefined>();
+//   const [txError,  setTxError]  = useState('');
+//   const [bidInput, setBidInput] = useState('');
+//   const [bidError, setBidError] = useState('');
+
+//   const { writeContract } = useWriteContract();
+
+//   const { isSuccess: txConfirmed, isError: txFailed } =
+//     useWaitForTransactionReceipt({ hash: txHash });
+
+//   // Move to success step when tx is mined — do NOT close modal here.
+//   // Closing is handled by the Done button so the user sees the success state.
+//   useEffect(() => {
+//     if (txConfirmed) setStep('success');
+//   }, [txConfirmed]);
+
+//   useEffect(() => {
+//     if (txFailed) {
+//       setTxError('Transaction failed on-chain.');
+//       setStep('error');
+//     }
+//   }, [txFailed]);
+
+//   const handleBuy = () => {
+//     setStep('pending');
+//     writeContract({
+//       address:      CONTRACT_ADDRESSES.marketplace as `0x${string}`,
+//       abi:          MARKETPLACE_ABI,
+//       functionName: 'buy',
+//       args:         [BigInt(listing.listingId)],
+//       value:        BigInt(listing.price),
+//     }, {
+//       onSuccess: (hash) => setTxHash(hash),
+//       onError: (err) => {
+//         setTxError(err.message.includes('rejected') ? 'Transaction rejected.' : err.message);
+//         setStep('error');
+//       },
+//     });
+//   };
+
+//   const handleBid = () => {
+//     setBidError('');
+//     const minBid = listing.highestBid && listing.highestBid !== '0'
+//       ? parseFloat(formatEther(BigInt(listing.highestBid)))
+//       : parseFloat(formatEther(BigInt(listing.price)));
+
+//     if (!bidInput || isNaN(parseFloat(bidInput)) || parseFloat(bidInput) <= 0) {
+//       setBidError('Enter a valid bid amount.');
+//       return;
+//     }
+//     if (parseFloat(bidInput) <= minBid) {
+//       setBidError(`Bid must be greater than ${minBid.toFixed(4)} ETH.`);
+//       return;
+//     }
+
+//     setStep('pending');
+//     writeContract({
+//       address:      CONTRACT_ADDRESSES.marketplace as `0x${string}`,
+//       abi:          MARKETPLACE_ABI,
+//       functionName: 'placeBid',
+//       args:         [BigInt(listing.listingId)],
+//       value:        parseEther(bidInput),
+//     }, {
+//       onSuccess: (hash) => setTxHash(hash),
+//       onError: (err) => {
+//         setTxError(err.message.includes('rejected') ? 'Transaction rejected.' : err.message);
+//         setStep('error');
+//       },
+//     });
+//   };
+
+//   const minBidEth = listing.highestBid && listing.highestBid !== '0'
+//     ? toEth(listing.highestBid)
+//     : toEth(listing.price);
+
+//   return (
+//     <div
+//       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-4 sm:pb-0"
+//       onClick={(e) => { if (e.target === e.currentTarget && step !== 'pending') onClose(); }}
+//     >
+//       <div className="bg-surface border border-muted rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl">
+
+//         {/* Header */}
+//         <div className="flex items-center justify-between">
+//           <h2 className="text-lg font-bold text-main">
+//             {mode === 'buy' ? 'Confirm Purchase' : 'Place a Bid'}
+//           </h2>
+//           {step !== 'pending' && (
+//             <button onClick={onClose} className="text-muted hover:text-main transition-colors">
+//               <X size={20} />
+//             </button>
+//           )}
+//         </div>
+
+//         {/* ── Confirm ── */}
+//         {step === 'confirm' && (
+//           <>
+//             <div className="bg-background rounded-xl p-4 space-y-2">
+//               <p className="text-xs text-muted uppercase tracking-wider">NFT</p>
+//               <p className="text-main font-semibold">{nftName}</p>
+//             </div>
+
+//             {mode === 'buy' ? (
+//               <>
+//                 <div className="bg-background rounded-xl p-4 space-y-1">
+//                   <p className="text-xs text-muted uppercase tracking-wider">Total Price</p>
+//                   <p className="text-2xl font-extrabold text-main">{toEth(listing.price)}</p>
+//                   <p className="text-xs text-muted">This amount will be deducted from your wallet.</p>
+//                 </div>
+//                 <Button variant="primary" size="lg" fullWidth onClick={handleBuy}
+//                   sxclass="flex items-center justify-center gap-2">
+//                   <Tag size={16} /> Confirm Purchase
+//                 </Button>
+//               </>
+//             ) : (
+//               <>
+//                 <div className="bg-background rounded-xl p-4 space-y-1">
+//                   <p className="text-xs text-muted uppercase tracking-wider mb-2">
+//                     Your Bid (ETH) — min. {minBidEth}
+//                   </p>
+//                   <div className="relative">
+//                     <input
+//                       type="number"
+//                       min="0"
+//                       step="0.001"
+//                       value={bidInput}
+//                       onChange={e => { setBidInput(e.target.value); setBidError(''); }}
+//                       placeholder="0.00"
+//                       className={`w-full px-4 py-3 pr-14 bg-surface border rounded-xl text-main text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary transition ${
+//                         bidError ? 'border-red-500' : 'border-muted'
+//                       }`}
+//                     />
+//                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted font-semibold">ETH</span>
+//                   </div>
+//                   {bidError && <p className="text-red-500 text-xs mt-1">{bidError}</p>}
+//                 </div>
+//                 <Button variant="primary" size="lg" fullWidth onClick={handleBid}
+//                   disabled={!bidInput}
+//                   sxclass="flex items-center justify-center gap-2">
+//                   <Gavel size={16} /> Place Bid
+//                 </Button>
+//               </>
+//             )}
+
+//             <Button variant="outline" size="md" fullWidth onClick={onClose}>
+//               Cancel
+//             </Button>
+//           </>
+//         )}
+
+//         {/* ── Pending ── */}
+//         {step === 'pending' && (
+//           <div className="text-center space-y-4 py-4">
+//             <Loader2 size={48} className="animate-spin text-primary mx-auto" />
+//             <p className="text-main font-semibold">
+//               {mode === 'buy' ? 'Processing Purchase...' : 'Placing Bid...'}
+//             </p>
+//             <p className="text-muted text-sm">
+//               Confirm the transaction in your wallet and wait for it to be mined.
+//             </p>
+//             {txHash && (
+//               <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+//                 className="inline-flex items-center gap-1 text-primary text-sm hover:underline">
+//                 View on Etherscan <ExternalLink size={13} />
+//               </a>
+//             )}
+//           </div>
+//         )}
+
+//         {/* ── Success ── */}
+//         {step === 'success' && (
+//           <div className="text-center space-y-4 py-4">
+//             <CheckCircle size={48} className="text-green-500 mx-auto" />
+//             <p className="text-main font-semibold">
+//               {mode === 'buy' ? '🎉 Purchase Successful!' : '🎉 Bid Placed!'}
+//             </p>
+//             <p className="text-muted text-sm">
+//               {mode === 'buy'
+//                 ? `You are now the owner of ${nftName}.`
+//                 : `Your bid has been placed on ${nftName}.`}
+//             </p>
+//             {txHash && (
+//               <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+//                 className="inline-flex items-center gap-1 text-primary text-sm hover:underline">
+//                 View on Etherscan <ExternalLink size={13} />
+//               </a>
+//             )}
+//             {/* Done closes modal AND triggers silent refetch in parent */}
+//             <Button variant="primary" size="md" fullWidth onClick={onSuccess}>
+//               Done
+//             </Button>
+//           </div>
+//         )}
+
+//         {/* ── Error ── */}
+//         {step === 'error' && (
+//           <div className="text-center space-y-4 py-4">
+//             <AlertCircle size={48} className="text-red-500 mx-auto" />
+//             <p className="text-main font-semibold">Something went wrong</p>
+//             <p className="text-red-500 text-sm break-words">{txError}</p>
+//             <div className="flex gap-3">
+//               <Button variant="outline" size="md" fullWidth onClick={() => setStep('confirm')}>
+//                 Try Again
+//               </Button>
+//               <Button variant="outline" size="md" fullWidth onClick={onClose}>
+//                 Close
+//               </Button>
+//             </div>
+//           </div>
+//         )}
+
+//       </div>
+//     </div>
+//   );
+// }
+
 // // ── Main Page ─────────────────────────────────────────────────────────────────
 
 // const NFTDetailPage = () => {
 //   const { collection: collectionAddress, tokenId } = useParams<{ collection: string; tokenId: string }>();
-//   const navigate    = useNavigate();
+//   const navigate = useNavigate();
 //   const { address, isConnected } = useAccount();
 
 //   const [nft,            setNft]            = useState<NFT | null>(null);
@@ -815,10 +1097,12 @@ export default NFTDetailPage;
 //   const [moreNFTs,       setMoreNFTs]       = useState<NFT[]>([]);
 //   const [loading,        setLoading]        = useState(true);
 //   const [error,          setError]          = useState('');
+//   const [modalMode,      setModalMode]      = useState<'buy' | 'bid' | null>(null);
 
 //   const isOwner = !!(isConnected && address && nft?.owner &&
 //     address.toLowerCase() === nft.owner.toLowerCase());
 
+//   // Full fetch — shows loading spinner, used on mount
 //   const fetchAll = useCallback(async () => {
 //     if (!collectionAddress || !tokenId) return;
 //     setLoading(true);
@@ -827,7 +1111,6 @@ export default NFTDetailPage;
 //       const nftData = await nftsApi.getOne(collectionAddress, tokenId);
 //       setNft(nftData);
 
-//       // Fetch collection, creator profile, owner profile in parallel
 //       const [col, creator, owner] = await Promise.all([
 //         collectionsApi.getOne(collectionAddress).catch(() => null),
 //         usersApi.getProfile(nftData.minter).catch(() => null),
@@ -839,7 +1122,6 @@ export default NFTDetailPage;
 //       setCreatorProfile(creator);
 //       setOwnerProfile(owner);
 
-//       // Fetch more NFTs from same collection, exclude current
 //       const more = await collectionsApi.getNFTs(collectionAddress, 1, 6).catch(() => ({ data: [] as NFT[] }));
 //       setMoreNFTs(more.data.filter(n => n.tokenId !== nftData.tokenId).slice(0, 3));
 //     } catch (err) {
@@ -850,9 +1132,20 @@ export default NFTDetailPage;
 //     }
 //   }, [collectionAddress, tokenId]);
 
+//   // Silent fetch — no loading spinner, used after buy/bid so UI updates smoothly
+//   const silentRefetch = useCallback(async () => {
+//     if (!collectionAddress || !tokenId) return;
+//     try {
+//       const nftData = await nftsApi.getOne(collectionAddress, tokenId);
+//       setNft(nftData);
+//     } catch {
+//       // Non-critical — user can refresh manually if needed
+//     }
+//   }, [collectionAddress, tokenId]);
+
 //   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-//   // Refetch when user navigates back to this tab after listing
+//   // Refetch when user comes back to this tab (e.g. after listing)
 //   useEffect(() => {
 //     const handleFocus = () => fetchAll();
 //     window.addEventListener('focus', handleFocus);
@@ -861,19 +1154,21 @@ export default NFTDetailPage;
 
 //   // ── Derived values ────────────────────────────────────────────────────────
 
-//   const nftImage    = resolveIpfsUrl(typeof nft?.metadata?.image === 'string' ? nft.metadata.image : '');
-//   const nftName     = typeof nft?.metadata?.name === 'string' ? nft.metadata.name : `Token #${nft?.tokenId}`;
-//   const nftDesc     = typeof nft?.metadata?.description === 'string' ? nft.metadata.description : '';
-//   const nftAttribs  = Array.isArray(nft?.metadata?.attributes) ? nft!.metadata!.attributes as { trait_type: string; value: string }[] : [];
+//   const nftImage   = resolveIpfsUrl(typeof nft?.metadata?.image === 'string' ? nft.metadata.image : '');
+//   const nftName    = typeof nft?.metadata?.name === 'string' ? nft.metadata.name : `Token #${nft?.tokenId}`;
+//   const nftDesc    = typeof nft?.metadata?.description === 'string' ? nft.metadata.description : '';
+//   const nftAttribs = Array.isArray(nft?.metadata?.attributes)
+//     ? nft!.metadata!.attributes as { trait_type: string; value: string }[]
+//     : [];
 
 //   const creatorName = creatorProfile?.username || (nft ? shortAddr(nft.minter) : '');
 //   const creatorImg  = creatorProfile?.avatar ? resolveIpfsUrl(creatorProfile.avatar) : undefined;
 //   const ownerName   = isOwner ? 'You' : (ownerProfile?.username || (nft ? shortAddr(nft.owner) : ''));
 //   const ownerImg    = ownerProfile?.avatar ? resolveIpfsUrl(ownerProfile.avatar) : undefined;
 
-//   const listing = nft?.activeListing ?? null;
-//   const isAuction   = listing?.type === 'auction';
-//   const auctionEnd  = listing?.endTime ? new Date(listing.endTime) : null;
+//   const listing    = (nft as NFT & { activeListing: Listing | null })?.activeListing ?? null;
+//   const isAuction  = listing?.type === 'auction';
+//   const auctionEnd = listing?.endTime ? new Date(listing.endTime) : null;
 
 //   // ── Loading ───────────────────────────────────────────────────────────────
 
@@ -919,7 +1214,6 @@ export default NFTDetailPage;
 //             <div className="space-y-4">
 //               <TiltImage src={nftImage} alt={nftName} />
 
-//               {/* Collection badge */}
 //               {collection && (
 //                 <button
 //                   onClick={() => navigate(`/collection/${collectionAddress}`)}
@@ -931,7 +1225,6 @@ export default NFTDetailPage;
 //                 </button>
 //               )}
 
-//               {/* Attributes */}
 //               {nftAttribs.length > 0 && (
 //                 <div>
 //                   <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Attributes</h3>
@@ -950,7 +1243,6 @@ export default NFTDetailPage;
 //             {/* ── Right: Info ── */}
 //             <div className="space-y-6">
 
-//               {/* Category + Token ID */}
 //               <div className="flex items-center gap-2 flex-wrap">
 //                 {nft.category && (
 //                   <span className="text-xs font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full">
@@ -962,17 +1254,14 @@ export default NFTDetailPage;
 //                 </span>
 //               </div>
 
-//               {/* Name */}
 //               <h1 className="text-4xl font-extrabold text-main leading-tight">{nftName}</h1>
 
-//               {/* Creator + Owner row */}
+//               {/* Creator + Owner */}
 //               <div className="flex gap-6 flex-wrap">
 //                 <div className="flex flex-col gap-1">
 //                   <span className="text-xs text-muted uppercase tracking-wider">Creator</span>
-//                   <button
-//                     onClick={() => navigate(`/profile/${nft.minter}`)}
-//                     className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-//                   >
+//                   <button onClick={() => navigate(`/profile/${nft.minter}`)}
+//                     className="flex items-center gap-2 hover:opacity-80 transition-opacity">
 //                     {creatorImg
 //                       ? <img src={creatorImg} alt="" className="w-8 h-8 rounded-full object-cover" />
 //                       : <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center"><User size={14} className="text-primary" /></div>
@@ -983,10 +1272,8 @@ export default NFTDetailPage;
 
 //                 <div className="flex flex-col gap-1">
 //                   <span className="text-xs text-muted uppercase tracking-wider">Owner</span>
-//                   <button
-//                     onClick={() => navigate(`/profile/${nft.owner}`)}
-//                     className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-//                   >
+//                   <button onClick={() => navigate(`/profile/${nft.owner}`)}
+//                     className="flex items-center gap-2 hover:opacity-80 transition-opacity">
 //                     {ownerImg
 //                       ? <img src={ownerImg} alt="" className="w-8 h-8 rounded-full object-cover" />
 //                       : <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center"><User size={14} className="text-primary" /></div>
@@ -996,7 +1283,6 @@ export default NFTDetailPage;
 //                 </div>
 //               </div>
 
-//               {/* Description */}
 //               {nftDesc && (
 //                 <div>
 //                   <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-2">Description</h3>
@@ -1004,7 +1290,7 @@ export default NFTDetailPage;
 //                 </div>
 //               )}
 
-//               {/* Listing / Action card */}
+//               {/* ── Listing / Action card ── */}
 //               <div className="bg-surface border border-muted rounded-2xl p-5 space-y-4">
 //                 {listing ? (
 //                   <>
@@ -1027,6 +1313,11 @@ export default NFTDetailPage;
 //                           : toEth(listing.price)
 //                         }
 //                       </p>
+//                       {isAuction && listing.highestBid && listing.highestBid !== '0' && (
+//                         <p className="text-xs text-muted mt-1">
+//                           Starting bid: {toEth(listing.price)}
+//                         </p>
+//                       )}
 //                     </div>
 
 //                     {isOwner ? (
@@ -1038,7 +1329,12 @@ export default NFTDetailPage;
 //                         Connect Wallet to {isAuction ? 'Bid' : 'Buy'}
 //                       </Button>
 //                     ) : (
-//                       <Button variant="primary" size="lg" sxclass="w-full flex items-center justify-center gap-2">
+//                       <Button
+//                         variant="primary"
+//                         size="lg"
+//                         sxclass="w-full flex items-center justify-center gap-2"
+//                         onClick={() => setModalMode(isAuction ? 'bid' : 'buy')}
+//                       >
 //                         {isAuction
 //                           ? <><Gavel size={16} /> Place Bid</>
 //                           : <><Tag size={16} /> Buy Now</>
@@ -1070,7 +1366,6 @@ export default NFTDetailPage;
 //               <div>
 //                 <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Details</h3>
 //                 <div className="space-y-2.5">
-
 //                   <div className="flex items-center justify-between text-sm">
 //                     <span className="text-muted">Contract Address</span>
 //                     <div className="flex items-center gap-2">
@@ -1078,22 +1373,18 @@ export default NFTDetailPage;
 //                       <CopyButton text={collectionAddress!} />
 //                     </div>
 //                   </div>
-
 //                   <div className="flex items-center justify-between text-sm">
 //                     <span className="text-muted">Token ID</span>
 //                     <span className="font-mono text-main">#{nft.tokenId}</span>
 //                   </div>
-
 //                   <div className="flex items-center justify-between text-sm">
 //                     <span className="text-muted">Token Standard</span>
 //                     <span className="text-main">ERC-721</span>
 //                   </div>
-
 //                   <div className="flex items-center justify-between text-sm">
 //                     <span className="text-muted">Blockchain</span>
 //                     <span className="text-main">Sepolia</span>
 //                   </div>
-
 //                   {nft.mintedAt && (
 //                     <div className="flex items-center justify-between text-sm">
 //                       <span className="text-muted flex items-center gap-1"><Calendar size={13} /> Minted</span>
@@ -1102,23 +1393,15 @@ export default NFTDetailPage;
 //                       </span>
 //                     </div>
 //                   )}
-
 //                   <div className="flex items-center gap-4 pt-2">
-//                     <a
-//                       href={`https://sepolia.etherscan.io/token/${collectionAddress}?a=${nft.tokenId}`}
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
-//                     >
+//                     <a href={`https://sepolia.etherscan.io/token/${collectionAddress}?a=${nft.tokenId}`}
+//                       target="_blank" rel="noopener noreferrer"
+//                       className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors">
 //                       <ExternalLink size={13} /> Etherscan
 //                     </a>
 //                     {typeof nft.metadata?.image === 'string' && (
-//                       <a
-//                         href={resolveIpfsUrl(nft.metadata.image)}
-//                         target="_blank"
-//                         rel="noopener noreferrer"
-//                         className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors"
-//                       >
+//                       <a href={resolveIpfsUrl(nft.metadata.image)} target="_blank" rel="noopener noreferrer"
+//                         className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors">
 //                         <Globe size={13} /> View Original
 //                       </a>
 //                     )}
@@ -1134,12 +1417,8 @@ export default NFTDetailPage;
 //             <div className="mt-20 mb-10">
 //               <div className="flex items-center justify-between mb-6">
 //                 <h2 className="text-2xl font-bold text-main">More from this collection</h2>
-//                 <Button
-//                   variant="outline"
-//                   size="md"
-//                   sxclass="px-5 flex items-center gap-2"
-//                   onClick={() => navigate(`/collection/${collectionAddress}`)}
-//                 >
+//                 <Button variant="outline" size="md" sxclass="px-5 flex items-center gap-2"
+//                   onClick={() => navigate(`/collection/${collectionAddress}`)}>
 //                   View Collection <ArrowRight size={16} />
 //                 </Button>
 //               </div>
@@ -1168,6 +1447,23 @@ export default NFTDetailPage;
 
 //         </div>
 //       </div>
+
+//       {/* ── Buy / Bid Modal ── */}
+//       {modalMode && listing && (
+//         <TxModal
+//           mode={modalMode}
+//           listing={listing}
+//           nftName={nftName}
+//           onClose={() => setModalMode(null)}
+//           onSuccess={() => {
+//             // Close modal, then silently refetch after 3s to give
+//             // the indexer time to process the SaleCompleted / BidPlaced event
+//             setModalMode(null);
+//             setTimeout(() => silentRefetch(), 3000);
+//           }}
+//         />
+//       )}
+
 //     </RegularPageWrapper>
 //   );
 // };
