@@ -18,6 +18,7 @@ import DashboardPage from './pages/DashboardPage';
 import CreateCollectionPage from './pages/CreateCollectionPage';
 import { useUserSync } from './hooks/useUserSync';
 import ListNFTPage from './pages/ListNFTPage';
+import RegularPageWrapper from './components/RegularPageWrapper';
 
 function App() {
   // Watches wagmi's useAccount and automatically syncs wallet
@@ -31,7 +32,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/nft/:collection/:tokenId" element={<NFTDetailPage />} />     
-      <Route path="/profile/:address" element={<ProfilePage />} />
+      <Route path="/profile/:address" element={<RegularPageWrapper><ProfilePage /></RegularPageWrapper>} />
       <Route path="/marketplace" element={<MarketPlacePage />} />
       <Route path="/rankings" element={<RankingsPage/>} />
       <Route path="/collection/:collectionName" element={<CollectionNFTsPage />} />
@@ -47,7 +48,7 @@ function App() {
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
     </div>
-  )
+  )  
 }
 
 export default App

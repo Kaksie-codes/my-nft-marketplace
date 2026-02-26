@@ -170,6 +170,15 @@ const ProfilePage = () => {
     profileAddress === connectedAddress.toLowerCase()
   );
 
+  // Validate ethereum address — must be 0x followed by 40 hex chars
+  const isValidAddress = /^0x[0-9a-f]{40}$/i.test(profileAddress);
+
+  useEffect(() => {
+    if (urlAddress && !isValidAddress) {
+      navigate('/404', { replace: true });
+    }
+  }, [urlAddress, isValidAddress, navigate]);
+
   // Profile data for the address being viewed (may differ from `user` if viewing someone else)
   const [viewedProfile,    setViewedProfile]    = useState<UserProfile | null>(null);
   const [activeTab,        setActiveTab]        = useState(0);
