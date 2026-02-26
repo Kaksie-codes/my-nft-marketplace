@@ -34,7 +34,7 @@ const TrendingCollectionSection = () => {
 
         // Filter out empty collections then take top 3
         const nonEmpty = withNFTs
-          .filter(({ nfts }) => nfts.length > 0)
+          // .filter(({ nfts }) => nfts.length > 0)
           .slice(0, 3);
 
         setData(nonEmpty);

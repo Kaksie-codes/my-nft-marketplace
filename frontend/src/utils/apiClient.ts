@@ -134,6 +134,8 @@ export type NFT = {
   category: string;
   metadata?: Record<string, unknown>;
   mintedAt: string;
+  listing?: Listing | null;
+  activeListing?: Listing | null;
 };
 
 export type Collection = {
@@ -201,6 +203,13 @@ export const usersApi = {
 
   getActivity: (address: string, page = 1, limit = 20) =>
     api.getPaginated<Activity>(`/api/users/${address}/activity?page=${page}&limit=${limit}`),
+  getTopCreators: (limit = 8, period?: string) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (period) params.append('period', period);
+    return api.get<{ address: string; nftCount: number; username?: string | null; avatar?: string | null }[]>(
+      `/api/users/top-creators?${params}`
+    );
+  },
 };
 
 // Collections
@@ -251,3 +260,4 @@ export const activityApi = {
     return api.getPaginated<Activity>(`/api/activity${query ? `?${query}` : ''}`);
   },
 };
+

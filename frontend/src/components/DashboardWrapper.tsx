@@ -18,20 +18,12 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Logo from './Logo';
 import ThemeToggler from './ThemeToggler';
 import ProfileModal from './modals/ProfileModal';
+import { useAccount } from 'wagmi';
 
 import { Outlet } from 'react-router-dom';
 
-const sidebarLinks = [
-  { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { name: 'My Profile', icon: Image, path: '/dashboard/profile' },
-  { name: 'Create NFT', icon: Upload, path: '/dashboard/create' },
-  { name: 'Collections', icon: Layers, path: '/dashboard/collections/create' },
-  { name: 'Notifications', icon: Bell, path: '/dashboard/notifications' },
-  { name: 'Settings', icon: Settings, path: '/dashboard/settings' },
-  { name: 'Help', icon: HelpCircle, path: '/dashboard/help' },
-];
-
 const DashboardWrapper: React.FC = () => {
+  const { address } = useAccount();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -43,6 +35,16 @@ const DashboardWrapper: React.FC = () => {
     avatar: '',
     walletAddress: '',
   });
+
+const sidebarLinks = [
+  { name: 'Dashboard',     icon: LayoutDashboard, path: '/dashboard' },
+  { name: 'My Profile',    icon: Image,           path: address ? `/dashboard/profile/${address}` : '/dashboard/profile' },
+  { name: 'Create NFT',    icon: Upload,           path: '/dashboard/create' },
+  { name: 'Collections',   icon: Layers,           path: '/dashboard/collections/create' },
+  { name: 'Notifications', icon: Bell,             path: '/dashboard/notifications' },
+  { name: 'Settings',      icon: Settings,         path: '/dashboard/settings' },
+  { name: 'Help',          icon: HelpCircle,       path: '/dashboard/help' },
+];
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

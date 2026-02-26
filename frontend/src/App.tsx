@@ -17,6 +17,7 @@ import DashboardWrapper from './components/DashboardWrapper';
 import DashboardPage from './pages/DashboardPage';
 import CreateCollectionPage from './pages/CreateCollectionPage';
 import { useUserSync } from './hooks/useUserSync';
+import ListNFTPage from './pages/ListNFTPage';
 
 function App() {
   // Watches wagmi's useAccount and automatically syncs wallet
@@ -29,18 +30,17 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-     
-      
+      <Route path="/nft/:collection/:tokenId" element={<NFTDetailPage />} />     
+      <Route path="/profile/:address" element={<ProfilePage />} />
       <Route path="/marketplace" element={<MarketPlacePage />} />
       <Route path="/rankings" element={<RankingsPage/>} />
       <Route path="/collection/:collectionName" element={<CollectionNFTsPage />} />
       <Route path="/dashboard" element={<DashboardWrapper />}>
         <Route index element={<DashboardPage />} />
-        <Route path="profile" element={<ProfilePage />} />
+        <Route path="profile/:address" element={<ProfilePage />} />
+        <Route path="list/:collection/:tokenId" element={<ListNFTPage />} />
         <Route path="create" element={<CreateNFTPage />} />
-        <Route path="collections/create" element={<CreateCollectionPage />} />
-        <Route path="rankings" element={<RankingsPage />} />
-        <Route path="nft/:id" element={<NFTDetailPage />} />
+        <Route path="collections/create" element={<CreateCollectionPage />} />        
       </Route>
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />

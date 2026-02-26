@@ -107,9 +107,14 @@ export function watchCollection(collectionAddress: Address) {
       for (const log of logs) {
         const { from, to, tokenId } = log.args;
 
-        // Skip mint transfers — from is zero address on mint.
-        // Mints are fully handled by the NFTMinted handler above.
+       // Skip mint transfers — from is zero address on mint.
         if ((from as string).toLowerCase() === ZERO_ADDRESS) continue;
+
+        // Skip transfers TO the marketplace — these happen during listing
+        // and don't represent a real ownership change. The owner stays the
+        // seller until the NFT is actually sold (handled by marketplaceIndexer).
+        const MARKETPLACE = (process.env.MARKETPLACE_CONTRACT_ADDRESS || '').toLowerCase();
+        if (MARKETPLACE && (to as string).toLowerCase() === MARKETPLACE) continue;
 
         try {
           // FIX 1: tokenId as String in both the query and the activity record
