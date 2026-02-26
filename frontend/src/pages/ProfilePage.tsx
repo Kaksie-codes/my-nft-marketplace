@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAccount } from 'wagmi';
-import { Copy, Globe, Twitter, Instagram, Camera, Check, Loader2, Upload, Link2 } from 'lucide-react';
+import { Copy, Camera, Check, Loader2, Upload, Link2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/avatar';
 import Button from '../components/button/Button';
@@ -43,8 +43,7 @@ function EditProfileModal({ currentUsername, currentAvatar, onClose, onSave }: E
     if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return; }
     if (file.size > 5 * 1024 * 1024)    { setError('Image must be under 5MB.');      return; }
     setError('');
-    const localPreview = URL.createObjectURL(file);
-    setPreviewUrl(localPreview);
+    setPreviewUrl(URL.createObjectURL(file));
     setUploading(true);
     try {
       const ipfsUrl = await uploadAvatarToPinata(file);
@@ -154,40 +153,33 @@ interface CollectionWithNFTs {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const ProfilePage = () => {
-  // address from URL — e.g. /profile/0xabc123
-  const { address: urlAddress }      = useParams<{ address: string }>();
+  const { address: urlAddress }                    = useParams<{ address: string }>();
   const { address: connectedAddress, isConnected } = useAccount();
-  const { user, updateProfile }      = useUser();
-  const navigate                     = useNavigate();
+  const { user, updateProfile }                    = useUser();
+  const navigate                                   = useNavigate();
 
-  // The profile we're viewing — could be someone else's
   const profileAddress = urlAddress?.toLowerCase() ?? connectedAddress?.toLowerCase() ?? '';
 
-  // True only when the viewer is looking at their own profile
   const isOwnProfile = !!(
     isConnected &&
     connectedAddress &&
     profileAddress === connectedAddress.toLowerCase()
   );
 
-  // Validate ethereum address — must be 0x followed by 40 hex chars
   const isValidAddress = /^0x[0-9a-f]{40}$/i.test(profileAddress);
 
   useEffect(() => {
-    if (urlAddress && !isValidAddress) {
-      navigate('/404', { replace: true });
-    }
+    if (urlAddress && !isValidAddress) navigate('/404', { replace: true });
   }, [urlAddress, isValidAddress, navigate]);
 
-  // Profile data for the address being viewed (may differ from `user` if viewing someone else)
-  const [viewedProfile,    setViewedProfile]    = useState<UserProfile | null>(null);
-  const [activeTab,        setActiveTab]        = useState(0);
-  const [mintedNFTs,       setMintedNFTs]       = useState<NFT[]>([]);
-  const [ownedNFTs,        setOwnedNFTs]        = useState<NFT[]>([]);
-  const [collectionsData,  setCollectionsData]  = useState<CollectionWithNFTs[]>([]);
-  const [loading,          setLoading]          = useState(true);
-  const [copied,           setCopied]           = useState(false);
-  const [showEdit,         setShowEdit]         = useState(false);
+  const [viewedProfile,   setViewedProfile]   = useState<UserProfile | null>(null);
+  const [activeTab,       setActiveTab]       = useState(0);
+  const [mintedNFTs,      setMintedNFTs]      = useState<NFT[]>([]);
+  const [ownedNFTs,       setOwnedNFTs]       = useState<NFT[]>([]);
+  const [collectionsData, setCollectionsData] = useState<CollectionWithNFTs[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [copied,          setCopied]          = useState(false);
+  const [showEdit,        setShowEdit]        = useState(false);
 
   const loadData = useCallback(async () => {
     if (!profileAddress) return;
@@ -195,13 +187,18 @@ const ProfilePage = () => {
     try {
       const [profileRes, nftRes, collectionRes] = await Promise.all([
         usersApi.getProfile(profileAddress).catch(() => null),
-        usersApi.getNFTs(profileAddress, 1, 50),
+        // Use filter=all so we get NFTs this address minted AND currently owns.
+        // This means sold NFTs still appear in "Created" because minter never changes.
+        usersApi.getNFTs(profileAddress, 1, 100, 'all'),
         collectionsApi.getAll({ creator: profileAddress }),
       ]);
 
       setViewedProfile(profileRes);
 
       const all = nftRes.data;
+
+      // Created = minted by this address (regardless of current owner)
+      // Owned   = currently owned by this address (may include NFTs minted by others)
       setMintedNFTs(all.filter(n => n.minter?.toLowerCase() === profileAddress));
       setOwnedNFTs( all.filter(n => n.owner?.toLowerCase()  === profileAddress));
 
@@ -245,8 +242,6 @@ const ProfilePage = () => {
     { label: 'Collections', count: collectionsData.length },
   ];
 
-  // When viewing own profile, use live `user` from context (stays in sync with edits).
-  // When viewing someone else's profile, use the fetched viewedProfile.
   const displayProfile = isOwnProfile ? user : viewedProfile;
   const displayName    = displayProfile?.username || (profileAddress ? shortAddress(profileAddress) : 'Unknown');
   const avatarSrc      = displayProfile?.avatar   ? resolveIpfsUrl(displayProfile.avatar) : undefined;
@@ -270,7 +265,6 @@ const ProfilePage = () => {
             className="w-full h-full object-cover absolute object-center opacity-80" />
           <div className="container max-w-6xl relative h-full">
             <div className="absolute left-6 md:left-10 bottom-0 translate-y-1/2 z-10">
-              {/* Avatar click-to-edit only on own profile */}
               {isOwnProfile ? (
                 <div className="relative group cursor-pointer" onClick={() => setShowEdit(true)}>
                   <Avatar image={avatarSrc} name={displayName} size="3xl" />
@@ -295,13 +289,10 @@ const ProfilePage = () => {
               )}
             </div>
             <div className="flex flex-wrap gap-3 items-center">
-              {/* Copy address — visible for all profiles */}
               <Button size="md" variant="primary" sxclass="px-5 flex items-center gap-2" onClick={handleCopy}>
                 {copied ? <Check size={16} /> : <Copy size={16} />}
                 {copied ? 'Copied!' : shortAddress(profileAddress)}
               </Button>
-
-              {/* Edit and Create buttons — only on own profile */}
               {isOwnProfile && (
                 <>
                   <Button size="md" variant="outline" sxclass="px-5" onClick={() => setShowEdit(true)}>
@@ -331,13 +322,6 @@ const ProfilePage = () => {
               </div>
             ))}
           </div>
-
-          {/* Social links */}
-          <div className="flex gap-4">
-            <a href="#" className="text-muted hover:text-primary"><Globe size={22} /></a>
-            <a href="#" className="text-muted hover:text-primary"><Twitter size={22} /></a>
-            <a href="#" className="text-muted hover:text-primary"><Instagram size={22} /></a>
-          </div>
         </div>
 
         {/* Tabs */}
@@ -353,7 +337,7 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {/* Created */}
+              {/* Created — minted by this address, includes sold NFTs */}
               {!loading && activeTab === 0 && (
                 mintedNFTs.length === 0
                   ? <div className="text-center py-16">
@@ -376,7 +360,7 @@ const ProfilePage = () => {
                     </div>
               )}
 
-              {/* Owned */}
+              {/* Owned — currently in wallet */}
               {!loading && activeTab === 1 && (
                 ownedNFTs.length === 0
                   ? <div className="text-center py-16">
@@ -416,12 +400,9 @@ const ProfilePage = () => {
                             className="cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => navigate(`/collection/${collection.address}`)}>
                             <TrendingCollectionCard
-                              bannerImg={bannerImg}
-                              thumbnails={thumbnails}
-                              count={collection.nftCount ?? 0}
-                              title={collection.name}
-                              creatorName={displayName}
-                              creatorImg={avatarSrc}
+                              bannerImg={bannerImg} thumbnails={thumbnails}
+                              count={collection.nftCount ?? 0} title={collection.name}
+                              creatorName={displayName} creatorImg={avatarSrc}
                             />
                           </div>
                         );
@@ -434,7 +415,6 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Edit modal — only rendered for own profile */}
       {isOwnProfile && showEdit && (
         <EditProfileModal
           currentUsername={user?.username}

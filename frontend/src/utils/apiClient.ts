@@ -198,11 +198,14 @@ export const usersApi = {
   getProfile:  (address: string) =>
     api.get<UserProfile>(`/api/users/${address}`),
 
-  getNFTs:     (address: string, page = 1, limit = 20) =>
-    api.getPaginated<NFT>(`/api/users/${address}/nfts?page=${page}&limit=${limit}`),
+  // filter='all' returns NFTs where owner OR minter === address,
+  // so sold NFTs still appear under "Created" on the profile page.
+  getNFTs:     (address: string, page = 1, limit = 20, filter: 'owned' | 'created' | 'all' = 'owned') =>
+    api.getPaginated<NFT>(`/api/users/${address}/nfts?page=${page}&limit=${limit}&filter=${filter}`),
 
   getActivity: (address: string, page = 1, limit = 20) =>
     api.getPaginated<Activity>(`/api/users/${address}/activity?page=${page}&limit=${limit}`),
+
   getTopCreators: (limit = 8, period?: string) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (period) params.append('period', period);
@@ -234,7 +237,7 @@ export const nftsApi = {
     api.getPaginated<NFT>(`/api/nfts/category/${category}?page=${page}&limit=${limit}`),
 
   getAll: (page = 1, limit = 20) =>
-  api.getPaginated<NFT>(`/api/nfts?page=${page}&limit=${limit}`),
+    api.getPaginated<NFT>(`/api/nfts?page=${page}&limit=${limit}`),
 };
 
 // Listings
