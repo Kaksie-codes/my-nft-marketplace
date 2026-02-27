@@ -12,6 +12,7 @@ import {
   LogOut,
   Search,
   Menu,
+  LayoutGrid,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -40,6 +41,7 @@ const sidebarLinks = [
   { name: 'Dashboard',     icon: LayoutDashboard, path: '/dashboard' },
   { name: 'My Profile',    icon: Image,           path: address ? `/dashboard/profile/${address}` : '/dashboard/profile' },
   { name: 'Create NFT',    icon: Upload,           path: '/dashboard/create' },
+  { name: 'My NFTs',    icon: LayoutGrid,           path: '/dashboard/my-nfts' },
   { name: 'Collections',   icon: Layers,           path: '/dashboard/collections/create' },
   { name: 'Notifications', icon: Bell,             path: '/dashboard/notifications' },
   { name: 'Settings',      icon: Settings,         path: '/dashboard/settings' },

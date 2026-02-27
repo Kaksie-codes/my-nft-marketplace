@@ -101,15 +101,17 @@ router.get('/:address', async (req: Request<{ address: string }>, res: Response)
 });
 
 // ── GET /api/users/:address/nfts ─────────────────────────────────────────────
-// ?filter=owned  → NFTs where owner === address             (default)
+// ?filter=owned   → NFTs where owner === address            (default)
 // ?filter=created → NFTs where minter === address           (survives sales)
-// ?filter=all    → NFTs where owner === OR minter === address
+// ?filter=all     → owner === OR minter === address
+// ?category=art   → restrict to one category
 router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
-  const address = req.params.address.toLowerCase();
-  const page    = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
-  const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
-  const skip    = (page - 1) * limit;
-  const filter  = qs(req.query.filter) ?? 'owned';
+  const address  = req.params.address.toLowerCase();
+  const page     = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
+  const limit    = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
+  const skip     = (page - 1) * limit;
+  const filter   = qs(req.query.filter)   ?? 'owned';
+  const category = qs(req.query.category);
 
   let mongoFilter: Record<string, unknown>;
   if (filter === 'created') {
@@ -117,9 +119,10 @@ router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Resp
   } else if (filter === 'all') {
     mongoFilter = { $or: [{ owner: address }, { minter: address }] };
   } else {
-    // Default: 'owned'
     mongoFilter = { owner: address };
   }
+
+  if (category) mongoFilter.category = category;
 
   try {
     const [nfts, total] = await Promise.all([
@@ -153,6 +156,7 @@ router.get('/:address/activity', async (req: Request<{ address: string }>, res: 
 });
 
 export default router;
+
 
 
 
@@ -215,14 +219,11 @@ export default router;
 // });
 
 // // ── GET /api/users/top-creators ──────────────────────────────────────────────
-// // IMPORTANT: Must be defined BEFORE /:address to avoid Express matching
-// // "top-creators" as a wallet address parameter.
-// // Supports ?limit=50&period=24h|7d|30d (omit period for all-time)
+// // IMPORTANT: Must be defined BEFORE /:address routes
 // router.get('/top-creators', async (req: Request, res: Response): Promise<void> => {
-//   const limit  = Math.min(50, parseInt(qs(req.query.limit)  ?? '8'));
-//   const period = qs(req.query.period); // '24h' | '7d' | '30d' | undefined
+//   const limit  = Math.min(50, parseInt(qs(req.query.limit) ?? '8'));
+//   const period = qs(req.query.period);
 
-//   // Build optional time filter based on period param
 //   const matchFilter: Record<string, unknown> = {};
 //   if (period === '24h') matchFilter.mintedAt = { $gte: new Date(Date.now() - 1  * 24 * 60 * 60 * 1000) };
 //   if (period === '7d')  matchFilter.mintedAt = { $gte: new Date(Date.now() - 7  * 24 * 60 * 60 * 1000) };
@@ -236,16 +237,10 @@ export default router;
 //       { $limit: limit },
 //     ]);
 
-//     // Enrich with username and avatar from users collection
 //     const results = await Promise.all(
 //       topMinters.map(async ({ _id: address, nftCount }: { _id: string; nftCount: number }) => {
 //         const user = await User.findOne({ address });
-//         return {
-//           address,
-//           nftCount,
-//           username: user?.username ?? null,
-//           avatar:   user?.avatar   ?? null,
-//         };
+//         return { address, nftCount, username: user?.username ?? null, avatar: user?.avatar ?? null };
 //       })
 //     );
 
@@ -269,16 +264,30 @@ export default router;
 // });
 
 // // ── GET /api/users/:address/nfts ─────────────────────────────────────────────
+// // ?filter=owned  → NFTs where owner === address             (default)
+// // ?filter=created → NFTs where minter === address           (survives sales)
+// // ?filter=all    → NFTs where owner === OR minter === address
 // router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
 //   const address = req.params.address.toLowerCase();
 //   const page    = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
 //   const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
 //   const skip    = (page - 1) * limit;
+//   const filter  = qs(req.query.filter) ?? 'owned';
+
+//   let mongoFilter: Record<string, unknown>;
+//   if (filter === 'created') {
+//     mongoFilter = { minter: address };
+//   } else if (filter === 'all') {
+//     mongoFilter = { $or: [{ owner: address }, { minter: address }] };
+//   } else {
+//     // Default: 'owned'
+//     mongoFilter = { owner: address };
+//   }
 
 //   try {
 //     const [nfts, total] = await Promise.all([
-//       NFT.find({ owner: address }).sort({ mintedAt: -1 }).skip(skip).limit(limit),
-//       NFT.countDocuments({ owner: address }),
+//       NFT.find(mongoFilter).sort({ mintedAt: -1 }).skip(skip).limit(limit),
+//       NFT.countDocuments(mongoFilter),
 //     ]);
 //     sendPaginated(res, nfts, total, page, limit);
 //   } catch (err) {
@@ -293,12 +302,12 @@ export default router;
 //   const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
 //   const skip    = (page - 1) * limit;
 
-//   const filter = { $or: [{ from: address }, { to: address }] };
+//   const activityFilter = { $or: [{ from: address }, { to: address }] };
 
 //   try {
 //     const [activity, total] = await Promise.all([
-//       Activity.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit),
-//       Activity.countDocuments(filter),
+//       Activity.find(activityFilter).sort({ timestamp: -1 }).skip(skip).limit(limit),
+//       Activity.countDocuments(activityFilter),
 //     ]);
 //     sendPaginated(res, activity, total, page, limit);
 //   } catch (err) {

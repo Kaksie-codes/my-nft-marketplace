@@ -202,8 +202,18 @@ export const usersApi = {
 
   // filter='all' returns NFTs where owner OR minter === address,
   // so sold NFTs still appear under "Created" on the profile page.
-  getNFTs:     (address: string, page = 1, limit = 20, filter: 'owned' | 'created' | 'all' = 'owned') =>
-    api.getPaginated<NFT>(`/api/users/${address}/nfts?page=${page}&limit=${limit}&filter=${filter}`),
+  // Optional category param enables server-side filtering by category.
+  getNFTs: (
+    address:   string,
+    page      = 1,
+    limit     = 20,
+    filter:    'owned' | 'created' | 'all' = 'owned',
+    category?: string,
+  ) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), filter });
+    if (category) params.set('category', category);
+    return api.getPaginated<NFT>(`/api/users/${address}/nfts?${params}`);
+  },
 
   getActivity: (address: string, page = 1, limit = 20) =>
     api.getPaginated<Activity>(`/api/users/${address}/activity?page=${page}&limit=${limit}`),
@@ -420,6 +430,8 @@ export const activityApi = {
 //   maxPerWallet: string;
 //   mintPrice: string;
 //   nftCount?: number;
+//   publicMintEnabled?: boolean;
+//   collaborators?: string[];
 //   createdAt: string;
 // };
 
@@ -489,7 +501,7 @@ export const activityApi = {
 
 // // Collections
 // export const collectionsApi = {
-//   getAll:    (params?: { creator?: string; page?: number; limit?: number }) => {
+//   getAll:    (params?: { creator?: string; collaborator?: string; visibility?: 'public'; page?: number; limit?: number }) => {
 //     const query = new URLSearchParams(params as Record<string, string>).toString();
 //     return api.getPaginated<Collection>(`/api/collections${query ? `?${query}` : ''}`);
 //   },
@@ -535,4 +547,3 @@ export const activityApi = {
 //     return api.getPaginated<Activity>(`/api/activity${query ? `?${query}` : ''}`);
 //   },
 // };
-
