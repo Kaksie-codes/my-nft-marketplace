@@ -105,16 +105,8 @@ const MyNFTsPage = () => {
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [filtersReady,  setFiltersReady]  = useState(false);
 
-  // The connected user's own profile — used as the creator on every card
-  // because every NFT on this page was minted by them
-  const [myProfile, setMyProfile] = useState<UserProfile | null>(null);
-
-  // ── Fetch own profile once ────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!address) return;
-    usersApi.getProfile(address).then(setMyProfile).catch(() => null);
-  }, [address]);
+  // Cache of minter address → profile, resolved lazily per page of NFTs
+  const [minterCache, setMinterCache] = useState<Record<string, UserProfile | null>>({});
 
   // ── Fetch all categories once for filter pills ────────────────────────────
 
@@ -163,17 +155,33 @@ const MyNFTsPage = () => {
     if (address) fetchNFTs(page, activeCategory);
   }, [address, page, activeCategory, fetchNFTs]);
 
+  // ── Resolve minter profiles for the current page ────────────────────────
+  // Keyed by minter address so one fetch covers multiple NFTs from the same minter.
+
+  useEffect(() => {
+    if (nfts.length === 0) return;
+    const uncached = [...new Set(nfts.map(n => n.minter))]
+      .filter(m => !(m in minterCache));
+    if (uncached.length === 0) return;
+
+    Promise.all(
+      uncached.map(async (minter) => {
+        const profile = await usersApi.getProfile(minter).catch(() => null);
+        return { minter, profile };
+      })
+    ).then(resolved => {
+      setMinterCache(prev => {
+        const next = { ...prev };
+        for (const { minter, profile } of resolved) next[minter] = profile;
+        return next;
+      });
+    });
+  }, [nfts]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleCategoryFilter = (cat: string | null) => {
     setActiveCategory(cat);
     setPage(1);
   };
-
-  // ── Creator info derived from own profile ─────────────────────────────────
-  // Every NFT on this page was minted by the connected wallet. So the creator
-  // shown on every card is always the user themselves — their username if set,
-  // otherwise their shortened address. Never the collection deployer's address.
-  const myName = myProfile?.username || (address ? shortAddr(address) : '');
-  const myImg  = myProfile?.avatar   ? resolveIpfsUrl(myProfile.avatar) : undefined;
 
   // ── Not connected ─────────────────────────────────────────────────────────
 
@@ -292,20 +300,28 @@ const MyNFTsPage = () => {
           {!loading && !error && nfts.length > 0 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {nfts.map(nft => (
-                  <NFTCard
-                    key={nft._id}
-                    image={getNFTImage(nft)}
-                    title={getNFTTitle(nft)}
-                    creatorImage={myImg}
-                    creatorName={myName}
-                    owner={nft.owner}
-                    listing={nft.listing ?? null}
-                    category={nft.category}
-                    backgroundColor="bg-surface"
-                    onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}
-                  />
-                ))}
+                {nfts.map(nft => {
+                  const minterProfile = minterCache[nft.minter];
+                  // minterProfile is undefined while loading, null if fetch failed
+                  const creatorName = minterProfile?.username || shortAddr(nft.minter);
+                  const creatorImg  = minterProfile?.avatar
+                    ? resolveIpfsUrl(minterProfile.avatar)
+                    : undefined;
+                  return (
+                    <NFTCard
+                      key={nft._id}
+                      image={getNFTImage(nft)}
+                      title={getNFTTitle(nft)}
+                      creatorImage={creatorImg}
+                      creatorName={creatorName}
+                      owner={nft.owner}
+                      listing={nft.listing ?? null}
+                      category={nft.category}
+                      backgroundColor="bg-surface"
+                      onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}
+                    />
+                  );
+                })}
               </div>
               <Pagination
                 page={page}

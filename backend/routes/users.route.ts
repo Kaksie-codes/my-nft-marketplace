@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { User } from '../models/user.model';
 import { NFT } from '../models/nft.model';
+import { Listing } from '../models/listing.model';
 import { Activity } from '../models/activity.model';
 import { qs } from '../utils';
 import {
@@ -101,9 +102,12 @@ router.get('/:address', async (req: Request<{ address: string }>, res: Response)
 });
 
 // ── GET /api/users/:address/nfts ─────────────────────────────────────────────
-// ?filter=owned   → NFTs where owner === address            (default)
-// ?filter=created → NFTs where minter === address           (survives sales)
-// ?filter=all     → owner === OR minter === address
+// Returns NFTs the user currently "possesses" — either directly in their wallet
+// OR held in marketplace escrow because they have an active listing.
+//
+// ?filter=owned   → wallet-held + actively listed by address  (default, used by My NFTs page)
+// ?filter=created → all NFTs where minter === address         (used by profile Created tab)
+// ?filter=all     → owned + created union                     (used by profile All tab)
 // ?category=art   → restrict to one category
 router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
   const address  = req.params.address.toLowerCase();
@@ -112,22 +116,59 @@ router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Resp
   const skip     = (page - 1) * limit;
   const filter   = qs(req.query.filter)   ?? 'owned';
   const category = qs(req.query.category);
+  const marketplaceAddr = (process.env.MARKETPLACE_CONTRACT_ADDRESS || '').toLowerCase();
 
   let mongoFilter: Record<string, unknown>;
+
   if (filter === 'created') {
+    // Profile "Created" tab — all NFTs ever minted by this address
     mongoFilter = { minter: address };
   } else if (filter === 'all') {
+    // Profile "All" tab — union of owned + created
     mongoFilter = { $or: [{ owner: address }, { minter: address }] };
   } else {
-    mongoFilter = { owner: address };
+    // "My NFTs" page — wallet-held OR actively listed by this address.
+    // When an NFT is listed, the marketplace contract takes custody so
+    // owner becomes the marketplace address. We need to include those too.
+    if (marketplaceAddr) {
+      // Find token IDs of NFTs actively listed by this seller
+      const activeListings = await Listing.find(
+        { seller: address, status: 'active' },
+        { collection: 1, tokenId: 1 }
+      ).lean();
+
+      if (activeListings.length > 0) {
+        // Build an $or: directly owned OR matches one of the active listings
+        const listedConditions = activeListings.map(l => ({
+          collection: l.collection,
+          tokenId:    l.tokenId,
+          owner:      marketplaceAddr,
+        }));
+        mongoFilter = { $or: [{ owner: address }, ...listedConditions] };
+      } else {
+        mongoFilter = { owner: address };
+      }
+    } else {
+      // Fallback if marketplace address not configured
+      mongoFilter = { owner: address };
+    }
   }
 
-  if (category) mongoFilter.category = category;
+  // Wrap in $and if category is set AND the base filter already uses $or,
+  // so category applies across the whole query rather than just the last branch.
+  let finalFilter: Record<string, unknown>;
+  if (category && '$or' in mongoFilter) {
+    finalFilter = { $and: [mongoFilter, { category }] };
+  } else if (category) {
+    finalFilter = { ...mongoFilter, category };
+  } else {
+    finalFilter = mongoFilter;
+  }
 
   try {
     const [nfts, total] = await Promise.all([
-      NFT.find(mongoFilter).sort({ mintedAt: -1 }).skip(skip).limit(limit),
-      NFT.countDocuments(mongoFilter),
+      NFT.find(finalFilter).sort({ mintedAt: -1 }).skip(skip).limit(limit),
+      NFT.countDocuments(finalFilter),
     ]);
     sendPaginated(res, nfts, total, page, limit);
   } catch (err) {
