@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAccount } from 'wagmi';
-import { Copy, Camera, Check, Loader2, Upload, Link2 } from 'lucide-react';
+import { Copy, Camera, Check, Loader2, Upload, Link2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/avatar';
 import Button from '../components/button/Button';
@@ -12,10 +12,69 @@ import { usersApi, collectionsApi, type NFT, type Collection, type UserProfile }
 import { resolveIpfsUrl, uploadAvatarToPinata } from '../utils/ipfs';
 import TrendingCollectionCard from '../components/TrendingCollectionCard';
 
+const PAGE_SIZE = 24;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function shortAddress(addr: string) {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+// ── Pagination Component ──────────────────────────────────────────────────────
+
+interface PaginationProps {
+  page:     number;
+  total:    number;
+  pageSize: number;
+  onChange: (page: number) => void;
+}
+
+function Pagination({ page, total, pageSize, onChange }: PaginationProps) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
+
+  const getPages = (): (number | '...')[] => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (page <= 4)              return [1, 2, 3, 4, 5, '...', totalPages];
+    if (page >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, '...', page - 1, page, page + 1, '...', totalPages];
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-10">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className="p-2 rounded-lg text-muted hover:text-main hover:bg-muted/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronLeft size={18} />
+      </button>
+
+      {getPages().map((p, i) =>
+        p === '...'
+          ? <span key={`ellipsis-${i}`} className="px-2 text-muted select-none">…</span>
+          : <button
+              key={p}
+              onClick={() => onChange(p as number)}
+              className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors ${
+                p === page
+                  ? 'bg-primary text-white'
+                  : 'text-muted hover:text-main hover:bg-muted/10'
+              }`}
+            >
+              {p}
+            </button>
+      )}
+
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className="p-2 rounded-lg text-muted hover:text-main hover:bg-muted/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  );
 }
 
 // ── Edit Profile Modal ────────────────────────────────────────────────────────
@@ -150,6 +209,13 @@ interface CollectionWithNFTs {
   nfts:       NFT[];
 }
 
+// ── Pagination state shape ────────────────────────────────────────────────────
+
+interface TabPagination {
+  page:  number;
+  total: number;
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const ProfilePage = () => {
@@ -174,35 +240,75 @@ const ProfilePage = () => {
 
   const [viewedProfile,   setViewedProfile]   = useState<UserProfile | null>(null);
   const [activeTab,       setActiveTab]       = useState(0);
+
+  // ── Per-tab data ──────────────────────────────────────────────────────────
   const [mintedNFTs,      setMintedNFTs]      = useState<NFT[]>([]);
   const [ownedNFTs,       setOwnedNFTs]       = useState<NFT[]>([]);
   const [collectionsData, setCollectionsData] = useState<CollectionWithNFTs[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [copied,          setCopied]          = useState(false);
-  const [showEdit,        setShowEdit]        = useState(false);
 
-  const loadData = useCallback(async () => {
+  // ── Per-tab pagination ────────────────────────────────────────────────────
+  const [mintedPagination,      setMintedPagination]      = useState<TabPagination>({ page: 1, total: 0 });
+  const [ownedPagination,       setOwnedPagination]       = useState<TabPagination>({ page: 1, total: 0 });
+  const [collectionsPagination, setCollectionsPagination] = useState<TabPagination>({ page: 1, total: 0 });
+
+  // ── Two loading states ────────────────────────────────────────────────────
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [tabLoading,     setTabLoading]     = useState(false);
+
+  // ── Minter profile cache ──────────────────────────────────────────────────
+  const [minterProfiles, setMinterProfiles] = useState<Record<string, UserProfile>>({});
+  const minterProfilesRef = useRef(minterProfiles);
+  useEffect(() => { minterProfilesRef.current = minterProfiles; }, [minterProfiles]);
+
+  const [copied,   setCopied]   = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+
+  // ── Resolve minter profiles for a batch of NFTs ───────────────────────────
+  const resolveMinterProfiles = useCallback(async (nfts: NFT[]) => {
+    const addresses = [
+      ...new Set(
+        nfts
+          .map(n => n.minter?.toLowerCase())
+          .filter((addr): addr is string => !!addr && addr !== profileAddress)
+      ),
+    ];
+    const missing = addresses.filter(addr => !minterProfilesRef.current[addr]);
+    if (missing.length === 0) return;
+
+    const settled = await Promise.allSettled(missing.map(addr => usersApi.getProfile(addr)));
+    const newEntries: Record<string, UserProfile> = {};
+    settled.forEach((result, i) => {
+      if (result.status === 'fulfilled') newEntries[missing[i]] = result.value;
+    });
+    if (Object.keys(newEntries).length > 0) {
+      setMinterProfiles(prev => ({ ...prev, ...newEntries }));
+    }
+  }, [profileAddress]);
+
+  // ── Initial load ──────────────────────────────────────────────────────────
+  const loadInitialData = useCallback(async () => {
     if (!profileAddress) return;
-    setLoading(true);
+    setInitialLoading(true);
     try {
-      const [profileRes, nftRes, collectionRes] = await Promise.all([
+      const [profileRes, mintedRes, ownedRes, collectionRes] = await Promise.all([
         usersApi.getProfile(profileAddress).catch(() => null),
-        // Use filter=all so we get NFTs this address minted AND currently owns.
-        // This means sold NFTs still appear in "Created" because minter never changes.
-        usersApi.getNFTs(profileAddress, 1, 100, 'all'),
-        collectionsApi.getAll({ creator: profileAddress }),
+        usersApi.getNFTs(profileAddress, 1, PAGE_SIZE, 'created'),
+        usersApi.getNFTs(profileAddress, 1, PAGE_SIZE, 'owned'),
+        collectionsApi.getAll({ creator: profileAddress, page: 1, limit: PAGE_SIZE }),
       ]);
 
       setViewedProfile(profileRes);
 
-      const all = nftRes.data;
+      setMintedNFTs(mintedRes.data);
+      setMintedPagination({ page: 1, total: mintedRes.pagination.total });
 
-      // Created = minted by this address (regardless of current owner)
-      // Owned   = currently owned by this address (may include NFTs minted by others)
-      setMintedNFTs(all.filter(n => n.minter?.toLowerCase() === profileAddress));
-      setOwnedNFTs( all.filter(n => n.owner?.toLowerCase()  === profileAddress));
+      setOwnedNFTs(ownedRes.data);
+      setOwnedPagination({ page: 1, total: ownedRes.pagination.total });
+
+      await resolveMinterProfiles(ownedRes.data);
 
       const cols = collectionRes.data;
+      setCollectionsPagination({ page: 1, total: collectionRes.pagination.total });
       const withNFTs = await Promise.all(
         cols.map(async (col) => {
           try {
@@ -217,11 +323,66 @@ const ProfilePage = () => {
     } catch (err) {
       console.error('Failed to load profile data:', err);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+    }
+  }, [profileAddress, resolveMinterProfiles]);
+
+  useEffect(() => { loadInitialData(); }, [loadInitialData]);
+
+  // ── Page change handlers ──────────────────────────────────────────────────
+
+  const handleMintedPageChange = useCallback(async (page: number) => {
+    setTabLoading(true);
+    try {
+      const res = await usersApi.getNFTs(profileAddress, page, PAGE_SIZE, 'created');
+      setMintedNFTs(res.data);
+      setMintedPagination(prev => ({ ...prev, page }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error('Failed to load created NFTs page:', err);
+    } finally {
+      setTabLoading(false);
     }
   }, [profileAddress]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const handleOwnedPageChange = useCallback(async (page: number) => {
+    setTabLoading(true);
+    try {
+      const res = await usersApi.getNFTs(profileAddress, page, PAGE_SIZE, 'owned');
+      setOwnedNFTs(res.data);
+      setOwnedPagination(prev => ({ ...prev, page }));
+      await resolveMinterProfiles(res.data);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error('Failed to load owned NFTs page:', err);
+    } finally {
+      setTabLoading(false);
+    }
+  }, [profileAddress, resolveMinterProfiles]);
+
+  const handleCollectionsPageChange = useCallback(async (page: number) => {
+    setTabLoading(true);
+    try {
+      const res = await collectionsApi.getAll({ creator: profileAddress, page, limit: PAGE_SIZE });
+      setCollectionsPagination(prev => ({ ...prev, page }));
+      const withNFTs = await Promise.all(
+        res.data.map(async (col) => {
+          try {
+            const nftRes = await collectionsApi.getNFTs(col.address, 1, 3);
+            return { collection: col, nfts: nftRes.data };
+          } catch {
+            return { collection: col, nfts: [] };
+          }
+        })
+      );
+      setCollectionsData(withNFTs);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error('Failed to load collections page:', err);
+    } finally {
+      setTabLoading(false);
+    }
+  }, [profileAddress]);
 
   const handleCopy = () => {
     if (!profileAddress) return;
@@ -236,10 +397,22 @@ const ProfilePage = () => {
   const getNFTTitle = (nft: NFT) =>
     typeof nft.metadata?.name === 'string' ? nft.metadata.name : `Token #${nft.tokenId}`;
 
+  const getMinterInfo = (nft: NFT): { name: string; image: string | undefined } => {
+    const minterAddr = nft.minter?.toLowerCase();
+    if (!minterAddr || minterAddr === profileAddress) {
+      return { name: displayName, image: avatarSrc };
+    }
+    const profile = minterProfiles[minterAddr];
+    return {
+      name:  profile?.username || shortAddress(nft.minter),
+      image: profile?.avatar   ? resolveIpfsUrl(profile.avatar) : undefined,
+    };
+  };
+
   const tabs = [
-    { label: 'Created',     count: mintedNFTs.length      },
-    { label: 'Owned',       count: ownedNFTs.length       },
-    { label: 'Collections', count: collectionsData.length },
+    { label: 'Created',     count: mintedPagination.total      },
+    { label: 'Owned',       count: ownedPagination.total       },
+    { label: 'Collections', count: collectionsPagination.total },
   ];
 
   const displayProfile = isOwnProfile ? user : viewedProfile;
@@ -309,12 +482,12 @@ const ProfilePage = () => {
           {/* Stats */}
           <div className="flex gap-8 flex-wrap">
             {[
-              { label: 'NFTs Created', value: mintedNFTs.length      },
-              { label: 'NFTs Owned',   value: ownedNFTs.length       },
-              { label: 'Collections',  value: collectionsData.length },
+              { label: 'NFTs Created', value: mintedPagination.total      },
+              { label: 'NFTs Owned',   value: ownedPagination.total       },
+              { label: 'Collections',  value: collectionsPagination.total },
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col">
-                {loading
+                {initialLoading
                   ? <div className="h-7 w-16 bg-muted/20 rounded animate-pulse mb-1" />
                   : <span className="text-2xl font-bold">{value}</span>
                 }
@@ -330,84 +503,126 @@ const ProfilePage = () => {
           <div className="bg-surface pb-20">
             <div className="container max-w-6xl px-4 sm:px-6 pt-6">
 
-              {loading && (
+              {initialLoading && (
                 <div className="flex items-center justify-center py-16 gap-2 text-muted">
                   <Loader2 size={20} className="animate-spin" />
                   <span className="text-sm">Loading...</span>
                 </div>
               )}
 
-              {/* Created — minted by this address, includes sold NFTs */}
-              {!loading && activeTab === 0 && (
-                mintedNFTs.length === 0
-                  ? <div className="text-center py-16">
-                      <p className="text-muted text-sm mb-4">
-                        {isOwnProfile ? "You haven't minted any NFTs yet." : "This user hasn't minted any NFTs yet."}
-                      </p>
-                      {isOwnProfile && (
-                        <Link to="/dashboard/create">
-                          <Button variant="primary" size="sm" sxclass="px-5">Mint your first NFT</Button>
-                        </Link>
-                      )}
+              {/* Created */}
+              {!initialLoading && activeTab === 0 && (
+                tabLoading
+                  ? <div className="flex items-center justify-center py-16 gap-2 text-muted">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-sm">Loading...</span>
                     </div>
-                  : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                      {mintedNFTs.map(nft => (
-                        <NFTCard key={nft._id} image={getNFTImage(nft)} title={getNFTTitle(nft)}
-                          creatorImage={avatarSrc} creatorName={displayName} category={nft.category}
-                          owner={nft.owner} listing={null} backgroundColor="bg-background"
-                          onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)} />
-                      ))}
-                    </div>
+                  : mintedNFTs.length === 0
+                    ? <div className="text-center py-16">
+                        <p className="text-muted text-sm mb-4">
+                          {isOwnProfile ? "You haven't minted any NFTs yet." : "This user hasn't minted any NFTs yet."}
+                        </p>
+                        {isOwnProfile && (
+                          <Link to="/dashboard/create">
+                            <Button variant="primary" size="sm" sxclass="px-5">Mint your first NFT</Button>
+                          </Link>
+                        )}
+                      </div>
+                    : <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                          {mintedNFTs.map(nft => (
+                            <NFTCard key={nft._id} image={getNFTImage(nft)} title={getNFTTitle(nft)}
+                              creatorImage={avatarSrc} creatorName={displayName} category={nft.category}
+                              owner={nft.owner} listing={nft.activeListing ?? null} backgroundColor="bg-background"
+                              onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)} />
+                          ))}
+                        </div>
+                        <Pagination
+                          page={mintedPagination.page}
+                          total={mintedPagination.total}
+                          pageSize={PAGE_SIZE}
+                          onChange={handleMintedPageChange}
+                        />
+                      </>
               )}
 
-              {/* Owned — currently in wallet */}
-              {!loading && activeTab === 1 && (
-                ownedNFTs.length === 0
-                  ? <div className="text-center py-16">
-                      <p className="text-muted text-sm">
-                        {isOwnProfile ? "You don't own any NFTs yet." : "This user doesn't own any NFTs yet."}
-                      </p>
+              {/* Owned */}
+              {!initialLoading && activeTab === 1 && (
+                tabLoading
+                  ? <div className="flex items-center justify-center py-16 gap-2 text-muted">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-sm">Loading...</span>
                     </div>
-                  : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                      {ownedNFTs.map(nft => (
-                        <NFTCard key={nft._id} image={getNFTImage(nft)} title={getNFTTitle(nft)}
-                          creatorImage={avatarSrc} creatorName={displayName} category={nft.category}
-                          owner={nft.owner} listing={null} backgroundColor="bg-background"
-                          onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)} />
-                      ))}
-                    </div>
+                  : ownedNFTs.length === 0
+                    ? <div className="text-center py-16">
+                        <p className="text-muted text-sm">
+                          {isOwnProfile ? "You don't own any NFTs yet." : "This user doesn't own any NFTs yet."}
+                        </p>
+                      </div>
+                    : <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                          {ownedNFTs.map(nft => {
+                            const minter = getMinterInfo(nft);
+                            return (
+                              <NFTCard key={nft._id} image={getNFTImage(nft)} title={getNFTTitle(nft)}
+                                creatorImage={minter.image} creatorName={minter.name} category={nft.category}
+                                owner={nft.owner} listing={nft.activeListing ?? null} backgroundColor="bg-background"
+                                onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)} />
+                            );
+                          })}
+                        </div>
+                        <Pagination
+                          page={ownedPagination.page}
+                          total={ownedPagination.total}
+                          pageSize={PAGE_SIZE}
+                          onChange={handleOwnedPageChange}
+                        />
+                      </>
               )}
 
               {/* Collections */}
-              {!loading && activeTab === 2 && (
-                collectionsData.length === 0
-                  ? <div className="text-center py-16">
-                      <p className="text-muted text-sm mb-4">
-                        {isOwnProfile ? "You haven't created any collections yet." : "This user hasn't created any collections yet."}
-                      </p>
-                      {isOwnProfile && (
-                        <Link to="/dashboard/collections/create">
-                          <Button variant="primary" size="sm" sxclass="px-5">Create a Collection</Button>
-                        </Link>
-                      )}
+              {!initialLoading && activeTab === 2 && (
+                tabLoading
+                  ? <div className="flex items-center justify-center py-16 gap-2 text-muted">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-sm">Loading...</span>
                     </div>
-                  : <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                      {collectionsData.map(({ collection, nfts }) => {
-                        const bannerImg  = nfts[0] ? getNFTImage(nfts[0]) : '/nft-placeholder.png';
-                        const thumbnails = nfts.map(getNFTImage);
-                        return (
-                          <div key={collection._id}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => navigate(`/collection/${collection.address}`)}>
-                            <TrendingCollectionCard
-                              bannerImg={bannerImg} thumbnails={thumbnails}
-                              count={collection.nftCount ?? 0} title={collection.name}
-                              creatorName={displayName} creatorImg={avatarSrc}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
+                  : collectionsData.length === 0
+                    ? <div className="text-center py-16">
+                        <p className="text-muted text-sm mb-4">
+                          {isOwnProfile ? "You haven't created any collections yet." : "This user hasn't created any collections yet."}
+                        </p>
+                        {isOwnProfile && (
+                          <Link to="/dashboard/collections/create">
+                            <Button variant="primary" size="sm" sxclass="px-5">Create a Collection</Button>
+                          </Link>
+                        )}
+                      </div>
+                    : <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                          {collectionsData.map(({ collection, nfts }) => {
+                            const bannerImg  = nfts[0] ? getNFTImage(nfts[0]) : '/nft-placeholder.png';
+                            const thumbnails = nfts.map(getNFTImage);
+                            return (
+                              <div key={collection._id}
+                                className="cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => navigate(`/collection/${collection.address}`)}>
+                                <TrendingCollectionCard
+                                  bannerImg={bannerImg} thumbnails={thumbnails}
+                                  count={collection.nftCount ?? 0} title={collection.name}
+                                  creatorName={displayName} creatorImg={avatarSrc}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <Pagination
+                          page={collectionsPagination.page}
+                          total={collectionsPagination.total}
+                          pageSize={PAGE_SIZE}
+                          onChange={handleCollectionsPageChange}
+                        />
+                      </>
               )}
 
             </div>
