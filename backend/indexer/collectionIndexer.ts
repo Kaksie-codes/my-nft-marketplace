@@ -41,8 +41,8 @@ async function fetchMetadata(uri: string): Promise<Record<string, unknown>> {
       ? uri.replace('ipfs://', 'https://ipfs.io/ipfs/')
       : uri;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return {};
-    return await res.json();
+    if (!res.ok) return {};   
+    return await res.json() as Record<string, unknown>;
   } catch {
     return {};
   }
