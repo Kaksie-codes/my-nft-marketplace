@@ -26,12 +26,66 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   if (collaborator) filter.collaborators        = collaborator.toLowerCase();
   if (visibility === 'public') filter.publicMintEnabled = true;
 
+  const sortBy = qs(req.query.sortBy);
+
   try {
-    const [collections, total] = await Promise.all([
-      Collection.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Collection.countDocuments(filter),
-    ]);
-    sendPaginated(res, collections, total, page, limit);
+    let withCounts: (Record<string, unknown> & { nftCount: number })[];
+    let total: number;
+
+    if (sortBy === 'nftCount') {
+      // Use aggregation so we can sort by nftCount BEFORE pagination.
+      // Fetching then sorting in-memory only sorts the current page, meaning
+      // collections with the most NFTs could be buried on later pages.
+      const matchStage = Object.keys(filter).length > 0 ? [{ $match: filter }] : [];
+
+      const pipeline = [
+        ...matchStage,
+        {
+          $lookup: {
+            from:         'nfts',
+            localField:   'address',
+            foreignField: 'collection',
+            as:           '_nftDocs',
+          },
+        },
+        { $addFields: { nftCount: { $size: '$_nftDocs' } } },
+        { $project:   { _nftDocs: 0 } },            // drop the joined docs
+        { $sort:      { nftCount: -1, createdAt: -1 } as Record<string, 1 | -1> },
+        {
+          $facet: {
+            data:  [{ $skip: skip }, { $limit: limit }],
+            count: [{ $count: 'total' }],
+          },
+        },
+      ];
+
+      const [result] = await Collection.aggregate(pipeline);
+      withCounts = result.data ?? [];
+      total      = result.count?.[0]?.total ?? 0;
+    } else {
+      // Default: sort by createdAt, attach nftCounts via separate aggregation
+      const [collections, count] = await Promise.all([
+        Collection.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        Collection.countDocuments(filter),
+      ]);
+      total = count;
+
+      if (collections.length === 0) {
+        return void sendPaginated(res, [], total, page, limit);
+      }
+
+      const addresses  = collections.map(c => c.address);
+      const counts     = await NFT.aggregate([
+        { $match: { collection: { $in: addresses } } },
+        { $group: { _id: '$collection', nftCount: { $sum: 1 } } },
+      ]);
+      const countMap   = new Map<string, number>();
+      for (const { _id, nftCount } of counts) countMap.set(_id, nftCount);
+
+      withCounts = collections.map(col => ({ ...col, nftCount: countMap.get(col.address) ?? 0 }));
+    }
+
+    sendPaginated(res, withCounts, total, page, limit);
   } catch (err) {
     sendServerError(res, err, 'GET /collections');
   }
