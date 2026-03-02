@@ -18,8 +18,15 @@ const app  = express();
 const PORT = process.env.PORT || 4000;
 
 // ── Core middleware ──────────────────────────────────────────────────────────
+// app.use(cors({
+//   origin:      process.env.CLIENT_URL || 'http://localhost:5173',
+//   credentials: true,
+// }));
 app.use(cors({
-  origin:      process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://my-nft-marketplace-j1gh.vercel.app/'
+  ],
   credentials: true,
 }));
 app.use(express.json());
@@ -50,6 +57,7 @@ app.use((_req, res) => res.status(404).json({ success: false, error: 'Not found'
 // Must be the very last app.use and must have all 4 params for Express to
 // recognise it as an error handler, not a regular middleware.
 app.use(errorHandler);
+
 
 // ── Startup ──────────────────────────────────────────────────────────────────
 async function main() {
