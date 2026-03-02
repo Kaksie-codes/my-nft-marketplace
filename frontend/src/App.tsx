@@ -20,6 +20,7 @@ import { useUserSync } from './hooks/useUserSync';
 import ListNFTPage from './pages/ListNFTPage';
 import RegularPageWrapper from './components/RegularPageWrapper';
 import MyNFTsPage from './pages/MyNFTPages';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   // Watches wagmi's useAccount and automatically syncs wallet
@@ -38,6 +39,7 @@ function App() {
       <Route path="/rankings" element={<RankingsPage/>} />
       <Route path="/collection/:collectionAddress" element={<CollectionNFTsPage />} />
       <Route path="/dashboard" element={<DashboardWrapper />}>
+        <Route path="/dashboard/admin" element={<AdminDashboardPage />} />
         <Route index element={<DashboardPage />} />
         <Route path="profile/:address" element={<ProfilePage />} />
         <Route path="my-nfts" element={<MyNFTsPage />} />

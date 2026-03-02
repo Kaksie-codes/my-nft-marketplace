@@ -13,6 +13,7 @@ import {
   Search,
   Menu,
   LayoutGrid,
+  ShieldCheck,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -20,8 +21,10 @@ import Logo from './Logo';
 import ThemeToggler from './ThemeToggler';
 import ProfileModal from './modals/ProfileModal';
 import { useAccount } from 'wagmi';
-
 import { Outlet } from 'react-router-dom';
+
+// The marketplace owner address — set in your .env as VITE_MARKETPLACE_OWNER_ADDRESS
+const MARKETPLACE_OWNER = (import.meta.env.VITE_MARKETPLACE_OWNER_ADDRESS || '').toLowerCase();
 
 const DashboardWrapper: React.FC = () => {
   const { address } = useAccount();
@@ -37,16 +40,20 @@ const DashboardWrapper: React.FC = () => {
     walletAddress: '',
   });
 
-const sidebarLinks = [
-  { name: 'Dashboard',     icon: LayoutDashboard, path: '/dashboard' },
-  { name: 'My Profile',    icon: Image,           path: address ? `/dashboard/profile/${address}` : '/dashboard/profile' },
-  { name: 'Create NFT',    icon: Upload,           path: '/dashboard/create' },
-  { name: 'My NFTs',    icon: LayoutGrid,           path: '/dashboard/my-nfts' },
-  { name: 'Collections',   icon: Layers,           path: '/dashboard/collections/create' },
-  { name: 'Notifications', icon: Bell,             path: '/dashboard/notifications' },
-  { name: 'Settings',      icon: Settings,         path: '/dashboard/settings' },
-  { name: 'Help',          icon: HelpCircle,       path: '/dashboard/help' },
-];
+  const isOwner = !!(address && address.toLowerCase() === MARKETPLACE_OWNER);
+
+  const sidebarLinks = [
+    // Admin link — only visible to marketplace owner, shown first
+    ...(isOwner ? [{ name: 'Admin', icon: ShieldCheck, path: '/dashboard/admin', adminOnly: true }] : []),
+    { name: 'Dashboard',     icon: LayoutDashboard, path: '/dashboard'                                               },
+    { name: 'My Profile',    icon: Image,           path: address ? `/dashboard/profile/${address}` : '/dashboard/profile' },
+    { name: 'Create NFT',    icon: Upload,          path: '/dashboard/create'                                        },
+    { name: 'My NFTs',       icon: LayoutGrid,      path: '/dashboard/my-nfts'                                       },
+    { name: 'Collections',   icon: Layers,          path: '/dashboard/collections/create'                           },
+    { name: 'Notifications', icon: Bell,            path: '/dashboard/notifications'                                 },
+    { name: 'Settings',      icon: Settings,        path: '/dashboard/settings'                                      },
+    { name: 'Help',          icon: HelpCircle,      path: '/dashboard/help'                                          },
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -84,6 +91,7 @@ const sidebarLinks = [
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
           {sidebarLinks.map((link) => {
             const isActive = location.pathname === link.path;
+            const isAdmin  = 'adminOnly' in link && link.adminOnly;
             return (
               <Link
                 key={link.name}
@@ -92,15 +100,28 @@ const sidebarLinks = [
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200
                   ${isActive
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-main hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    ? isAdmin
+                      ? 'bg-amber-500/10 text-amber-400 font-semibold'
+                      : 'bg-primary/10 text-primary font-semibold'
+                    : isAdmin
+                      ? 'text-amber-400/80 hover:bg-amber-500/10 hover:text-amber-400'
+                      : 'text-main hover:bg-gray-100 dark:hover:bg-gray-700/50'
                   }
                   ${collapsed ? 'justify-center' : ''}
                 `}
                 title={collapsed ? link.name : undefined}
               >
                 <link.icon size={20} className="flex-shrink-0" />
-                {!collapsed && <span className="text-sm">{link.name}</span>}
+                {!collapsed && (
+                  <span className="text-sm flex items-center gap-2">
+                    {link.name}
+                    {isAdmin && !collapsed && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        OWNER
+                      </span>
+                    )}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -137,7 +158,6 @@ const sidebarLinks = [
       <div className="flex-1 flex flex-col min-w-0">
         {/* Dashboard Header */}
         <header className="sticky top-0 z-30 h-16 bg-surface border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 sm:px-6">
-          {/* Left: mobile menu + search */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -145,7 +165,6 @@ const sidebarLinks = [
             >
               <Menu size={20} />
             </button>
-
             <div className="hidden sm:flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5">
               <Search size={16} className="text-gray-400" />
               <input
@@ -156,14 +175,8 @@ const sidebarLinks = [
             </div>
           </div>
 
-          {/* Right: wallet + profile + theme */}
           <div className="flex items-center gap-3">
-            <ConnectButton
-              showBalance={false}
-              accountStatus="address"
-            />
-
-            {/* Profile Button */}
+            <ConnectButton showBalance={false} accountStatus="address" />
             <button
               onClick={() => setIsProfileModalOpen(true)}
               className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -174,7 +187,6 @@ const sidebarLinks = [
                 </span>
               </div>
             </button>
-
             <ThemeToggler />
           </div>
         </header>
@@ -185,7 +197,6 @@ const sidebarLinks = [
         </main>
       </div>
 
-      {/* Profile Modal */}
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}

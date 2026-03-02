@@ -12,6 +12,7 @@ import nftRoutes        from './routes/nfts.route';
 import listingRoutes    from './routes/listings.route';
 import activityRoutes   from './routes/activity.route';
 import newsletterRoutes   from './routes/newsletter.route';
+import adminRoutes from './routes/admin.route';
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
@@ -40,6 +41,7 @@ app.use('/api/nfts',        nftRoutes);
 app.use('/api/listings',    listingRoutes);
 app.use('/api/activity',    activityRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ success: false, error: 'Not found' }));
