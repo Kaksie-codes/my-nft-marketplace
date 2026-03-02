@@ -4,10 +4,10 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec tsx server.ts",
-    "start": "tsx server.ts",
+    "start": "node dist/server.js",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
