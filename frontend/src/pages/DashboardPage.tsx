@@ -112,7 +112,6 @@ const DashboardPage = () => {
     setLoading(true);
 
     try {
-      // Run all three fetches in parallel
       const [nftRes, activityRes, collectionRes] = await Promise.all([
         usersApi.getNFTs(address, 1, 6),
         usersApi.getActivity(address, 1, 5),
@@ -123,7 +122,6 @@ const DashboardPage = () => {
       setActivity(activityRes.data);
       setCollections(collectionRes.data);
 
-      // Calculate total value from active listings the user is selling
       try {
         const listingsRes = await listingsApi.getAll({ seller: address, status: 'active' });
         const total = listingsRes.data.reduce((sum, l) => {
@@ -217,7 +215,7 @@ const DashboardPage = () => {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-main">Your Recent NFTs</h2>
-            <Link to="/dashboard/profile"
+            <Link to="/dashboard/my-nfts"
               className="text-sm text-primary hover:underline flex items-center gap-1">
               View all <ExternalLink size={14} />
             </Link>
@@ -247,10 +245,8 @@ const DashboardPage = () => {
                 <NFTCard
                   key={nft._id}
                   image={resolveIpfsUrl(
-                    typeof nft.metadata?.image === 'string'
-                      ? nft.metadata.image
-                      : ''
-                    )}
+                    typeof nft.metadata?.image === 'string' ? nft.metadata.image : ''
+                  )}
                   title={
                     typeof nft.metadata?.name === 'string'
                       ? nft.metadata.name
@@ -259,7 +255,7 @@ const DashboardPage = () => {
                   creatorImage={user?.avatar ? resolveIpfsUrl(user.avatar) : undefined}
                   creatorName={displayName}
                   owner={nft.owner}
-                  listing={null}
+                  listing={nft.activeListing ?? null}
                   onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}
                 />
               ))}
@@ -356,7 +352,6 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Loading indicator */}
       {loading && (
         <div className="fixed bottom-6 right-6 flex items-center gap-2 bg-surface border border-muted rounded-full px-4 py-2 shadow-lg text-sm text-muted">
           <Loader2 size={14} className="animate-spin" />
