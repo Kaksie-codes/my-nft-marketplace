@@ -26,6 +26,7 @@ import {
   type Collection,
 } from '../utils/apiClient';
 import { resolveIpfsUrl } from '../utils/ipfs';
+import NFTCardLoader from '../components/loaders/NFTCardLoader';
 
 // ── Activity badge colours ───────────────────────────────────────────────────
 
@@ -82,17 +83,7 @@ function StatCard({ label, value, icon: Icon, color, sub }: StatCardProps) {
   );
 }
 
-// ── Skeleton ─────────────────────────────────────────────────────────────────
 
-function SkeletonCard() {
-  return (
-    <div className="bg-surface border border-muted rounded-xl p-5 animate-pulse space-y-3">
-      <div className="w-full h-40 bg-muted/20 rounded-lg" />
-      <div className="h-4 bg-muted/20 rounded w-3/4" />
-      <div className="h-3 bg-muted/20 rounded w-1/2" />
-    </div>
-  );
-}
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -223,7 +214,7 @@ const DashboardPage = () => {
 
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+              {[...Array(3)].map((_, i) => <NFTCardLoader key={i} />)}
             </div>
           )}
 

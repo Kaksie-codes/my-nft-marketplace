@@ -5,6 +5,7 @@ import Button from './button/Button';
 import NFTCard from './NFTCard';
 import { nftsApi, usersApi, type NFT, type UserProfile } from '../utils/apiClient';
 import { resolveIpfsUrl } from '../utils/ipfs';
+import NFTCardLoader from './loaders/NFTCardLoader';
 
 const DiscoverMoreNFTsSection = () => {
   const navigate    = useNavigate();
@@ -75,20 +76,7 @@ const DiscoverMoreNFTsSection = () => {
         {loading && (
           <div className="mt-[40px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[20px]">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-surface rounded-[20px] animate-pulse border border-muted">
-                <div className="w-full h-[220px] bg-muted/20 rounded-t-[20px]" />
-                <div className="px-4 py-4 space-y-3">
-                  <div className="h-4 bg-muted/20 rounded w-3/4" />
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-muted/20" />
-                    <div className="h-3 bg-muted/20 rounded w-1/3" />
-                  </div>
-                  <div className="flex justify-between mt-2">
-                    <div className="h-8 bg-muted/20 rounded w-1/3" />
-                    <div className="h-8 bg-muted/20 rounded w-1/3" />
-                  </div>
-                </div>
-              </div>
+              <NFTCardLoader key={i} />
             ))}
           </div>
         )}

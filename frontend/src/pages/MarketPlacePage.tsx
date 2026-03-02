@@ -7,6 +7,8 @@ import TrendingCollectionCard from '../components/TrendingCollectionCard';
 import RegularPageWrapper from '../components/RegularPageWrapper';
 import { nftsApi, collectionsApi, usersApi, type NFT, type Collection, type UserProfile } from '../utils/apiClient';
 import { resolveIpfsUrl } from '../utils/ipfs';
+import NFTCardLoader from '../components/loaders/NFTCardLoader';
+import CollectionCardLoader from '../components/loaders/CollectionCardLoader';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,39 +28,8 @@ const ITEMS_PER_PAGE = 6;
 
 // ── Skeletons ─────────────────────────────────────────────────────────────────
 
-function NFTCardSkeleton() {
-  return (
-    <div className="bg-background rounded-[20px] animate-pulse border border-muted">
-      <div className="w-full h-[220px] bg-muted/20 rounded-t-[20px]" />
-      <div className="px-4 py-4 space-y-3">
-        <div className="h-4 bg-muted/20 rounded w-3/4" />
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-muted/20" />
-          <div className="h-3 bg-muted/20 rounded w-1/3" />
-        </div>
-        <div className="flex justify-between mt-2">
-          <div className="h-8 bg-muted/20 rounded w-1/3" />
-          <div className="h-8 bg-muted/20 rounded w-1/3" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function CollectionCardSkeleton() {
-  return (
-    <div className="animate-pulse space-y-3">
-      <div className="h-[180px] bg-muted/20 rounded-[10px]" />
-      <div className="grid grid-cols-3 gap-3">
-        <div className="h-[70px] bg-muted/20 rounded-[5px]" />
-        <div className="h-[70px] bg-muted/20 rounded-[5px]" />
-        <div className="h-[70px] bg-muted/20 rounded-[5px]" />
-      </div>
-      <div className="h-5 bg-muted/20 rounded w-2/3" />
-      <div className="h-4 bg-muted/20 rounded w-1/2" />
-    </div>
-  );
-}
+
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
@@ -359,7 +330,7 @@ const MarketPlacePage = () => {
                 <div className="flex-1 min-w-0">
                   {nftLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {[...Array(ITEMS_PER_PAGE)].map((_, i) => <NFTCardSkeleton key={i} />)}
+                      {[...Array(ITEMS_PER_PAGE)].map((_, i) => <NFTCardLoader key={i} />)}
                     </div>
                   ) : nfts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -399,7 +370,7 @@ const MarketPlacePage = () => {
             {activeTab === 1 && (
               colLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-                  {[...Array(ITEMS_PER_PAGE)].map((_, i) => <CollectionCardSkeleton key={i} />)}
+                  {[...Array(ITEMS_PER_PAGE)].map((_, i) => <CollectionCardLoader key={i} />)}
                 </div>
               ) : collections.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">

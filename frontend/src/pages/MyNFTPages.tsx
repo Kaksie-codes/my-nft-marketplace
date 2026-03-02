@@ -10,6 +10,7 @@ import RegularPageWrapper from '../components/RegularPageWrapper';
 import Button from '../components/button/Button';
 import { usersApi, type NFT, type UserProfile } from '../utils/apiClient';
 import { resolveIpfsUrl } from '../utils/ipfs';
+import NFTCardLoader from '../components/loaders/NFTCardLoader';
 
 const LIMIT = 24;
 
@@ -26,20 +27,6 @@ function formatCategory(cat: string): string {
   return cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-
-function SkeletonCard() {
-  return (
-    <div className="bg-surface rounded-[20px] border border-muted animate-pulse">
-      <div className="w-full h-[220px] bg-muted/20 rounded-t-[20px]" />
-      <div className="px-4 py-4 space-y-3">
-        <div className="h-4 bg-muted/20 rounded w-3/4" />
-        <div className="h-3 bg-muted/20 rounded w-1/2" />
-        <div className="h-3 bg-muted/20 rounded w-1/3 mt-4" />
-      </div>
-    </div>
-  );
-}
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
@@ -256,8 +243,8 @@ const MyNFTsPage = () => {
 
           {/* Loading */}
           {loading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {[...Array(LIMIT)].map((_, i) => <SkeletonCard key={i} />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {[...Array(LIMIT)].map((_, i) => <NFTCardLoader key={i} />)}
             </div>
           )}
 
@@ -299,7 +286,7 @@ const MyNFTsPage = () => {
           {/* NFT grid */}
           {!loading && !error && nfts.length > 0 && (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-6">
                 {nfts.map(nft => {
                   const minterProfile = minterCache[nft.minter];
                   // minterProfile is undefined while loading, null if fetch failed
