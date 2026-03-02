@@ -6,9 +6,9 @@ import {
   Image,
   Upload,
   Layers,
-  Settings,
-  Bell,
-  HelpCircle,
+  // Settings,
+  // Bell,
+  // HelpCircle,
   LogOut,
   Search,
   Menu,
@@ -50,9 +50,9 @@ const DashboardWrapper: React.FC = () => {
     { name: 'Create NFT',    icon: Upload,          path: '/dashboard/create'                                        },
     { name: 'My NFTs',       icon: LayoutGrid,      path: '/dashboard/my-nfts'                                       },
     { name: 'Collections',   icon: Layers,          path: '/dashboard/collections/create'                           },
-    { name: 'Notifications', icon: Bell,            path: '/dashboard/notifications'                                 },
-    { name: 'Settings',      icon: Settings,        path: '/dashboard/settings'                                      },
-    { name: 'Help',          icon: HelpCircle,      path: '/dashboard/help'                                          },
+    // { name: 'Notifications', icon: Bell,            path: '/dashboard/notifications'                                 },
+    // { name: 'Settings',      icon: Settings,        path: '/dashboard/settings'                                      },
+    // { name: 'Help',          icon: HelpCircle,      path: '/dashboard/help'                                          },
   ];
 
   return (

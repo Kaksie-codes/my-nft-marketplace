@@ -315,7 +315,7 @@ const MyNFTsPage = () => {
                       creatorImage={creatorImg}
                       creatorName={creatorName}
                       owner={nft.owner}
-                      listing={nft.listing ?? null}
+                      listing={nft.activeListing ?? null}
                       category={nft.category}
                       backgroundColor="bg-surface"
                       onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}
