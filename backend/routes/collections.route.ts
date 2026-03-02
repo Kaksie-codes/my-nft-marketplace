@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Collection } from '../models/collection.model';
 import { NFT } from '../models/nft.model';
+import { Listing } from '../models/listing.model';
 import { qs } from '../utils';
 import {
   sendSuccess,
@@ -12,16 +13,6 @@ import {
 const router = Router();
 
 // ── GET /api/collections ─────────────────────────────────────────────────────
-// Supports:
-//   ?creator=0x...        — collections owned by this address
-//   ?collaborator=0x...   — collections where this address is a collaborator
-//   ?visibility=public    — only publicMintEnabled collections
-//   ?page=1&limit=20
-//
-// The frontend uses these to build the "pick a collection" list on CreateNFTPage:
-//   1. fetch ?creator=me          → my own collections
-//   2. fetch ?visibility=public   → all public collections (excluding mine, deduped on FE)
-//   3. fetch ?collaborator=me     → collections where I'm a collaborator
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   const page         = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
   const limit        = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
@@ -46,7 +37,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// ── GET /api/collections/:address ───────────────────────────────────────────
+// ── GET /api/collections/:address ────────────────────────────────────────────
 router.get('/:address', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
   const address = req.params.address.toLowerCase();
 
@@ -61,7 +52,7 @@ router.get('/:address', async (req: Request<{ address: string }>, res: Response)
   }
 });
 
-// ── GET /api/collections/:address/nfts ──────────────────────────────────────
+// ── GET /api/collections/:address/nfts ───────────────────────────────────────
 router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
   const address  = req.params.address.toLowerCase();
   const page     = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
@@ -74,9 +65,33 @@ router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Resp
 
   try {
     const [nfts, total] = await Promise.all([
-      NFT.find(filter).sort({ tokenId: 1 }).skip(skip).limit(limit),
+      NFT.find(filter).sort({ tokenId: 1 }).skip(skip).limit(limit).lean(),
       NFT.countDocuments(filter),
     ]);
+
+    // ── Attach active listing to each NFT ─────────────────────────────────
+    // Same bulk-join pattern as users.route.ts — one query for all listings
+    // on this page rather than N individual queries.
+    if (nfts.length > 0) {
+      const conditions = nfts.map(n => ({ collection: n.collection, tokenId: n.tokenId }));
+      const activeListings = await Listing.find({
+        status: 'active',
+        $or: conditions,
+      }).lean();
+
+      const listingMap = new Map<string, typeof activeListings[0]>();
+      for (const listing of activeListings) {
+        listingMap.set(`${listing.collection}:${listing.tokenId}`, listing);
+      }
+
+      const nftsWithListings = nfts.map(nft => ({
+        ...nft,
+        activeListing: listingMap.get(`${nft.collection}:${nft.tokenId}`) ?? null,
+      }));
+
+      return void sendPaginated(res, nftsWithListings, total, page, limit);
+    }
+
     sendPaginated(res, nfts, total, page, limit);
   } catch (err) {
     sendServerError(res, err, `GET /collections/${address}/nfts`);
