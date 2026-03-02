@@ -63,7 +63,12 @@ function formatCategory(cat: string): string {
 
 // ── Listing info section ──────────────────────────────────────────────────────
 
-function ListingInfo({ listing }: { listing?: Listing | null }) {
+interface ListingInfoProps {
+  listing?:  Listing | null;
+  isSeller:  boolean;
+}
+
+function ListingInfo({ listing, isSeller }: ListingInfoProps) {
   const timeLeft = useCountdown(listing?.endTime);
 
   if (!listing) {
@@ -88,18 +93,26 @@ function ListingInfo({ listing }: { listing?: Listing | null }) {
             {toEth(listing.price)}
           </p>
         </div>
-        <div className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">
-          Buy Now
-        </div>
+        {isSeller ? (
+          <div className="bg-muted/20 text-muted text-xs font-medium px-2.5 py-1 rounded-full">
+            Listed
+          </div>
+        ) : (
+          <div className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">
+            Buy Now
+          </div>
+        )}
       </div>
     );
   }
 
+  // Auction
   return (
     <div className="flex justify-between items-center mt-3">
       <div>
         <span className="text-muted text-xs flex items-center gap-1">
-          <Gavel size={11} /> Highest Bid
+          <Gavel size={11} />
+          {isSeller ? 'Your Auction' : 'Highest Bid'}
         </span>
         <p className="text-main text-lg font-semibold leading-tight mt-0.5">
           {toEth(listing.highestBid) !== '—' ? toEth(listing.highestBid) : toEth(listing.price)}
@@ -129,7 +142,13 @@ const NFTCard: React.FC<NFTCardProps> = ({
   onClick,
 }) => {
   const { address } = useAccount();
-  const isOwner = !!(address && owner && address.toLowerCase() === owner.toLowerCase());
+
+  // Guard: only treat a listing as active if its status is explicitly 'active'.
+  // This prevents sold/cancelled/ended listings from showing as live on the card.
+  const activeListing = listing?.status === 'active' ? listing : null;
+
+  const isOwner  = !!(address && owner          && address.toLowerCase() === owner.toLowerCase());
+  const isSeller = !!(address && activeListing?.seller && address.toLowerCase() === activeListing.seller.toLowerCase());
 
   return (
     <div
@@ -144,14 +163,14 @@ const NFTCard: React.FC<NFTCardProps> = ({
         </div>
       )}
 
-      {/* Listing type badge */}
-      {listing && (
+      {/* Listing type badge — only shown for active listings */}
+      {activeListing && (
         <div className={`absolute top-3 right-3 z-10 text-xs font-medium px-2.5 py-1 rounded-full ${
-          listing.type === 'auction'
+          activeListing.type === 'auction'
             ? 'bg-amber-500/90 text-white'
             : 'bg-green-500/90 text-white'
         }`}>
-          {listing.type === 'auction' ? 'Auction' : 'For Sale'}
+          {activeListing.type === 'auction' ? 'Auction' : 'For Sale'}
         </div>
       )}
 
@@ -164,7 +183,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
           onError={(e) => { (e.target as HTMLImageElement).src = '/nft-placeholder.png'; }}
         />
 
-        {/* Category pill — bottom left of image */}
+        {/* Category pill */}
         {category && (
           <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
             {formatCategory(category)}
@@ -187,8 +206,8 @@ const NFTCard: React.FC<NFTCardProps> = ({
           <p className="text-xs text-muted truncate">{creatorName}</p>
         </div>
 
-        {/* Listing info */}
-        <ListingInfo listing={listing} />
+        {/* Listing info — uses activeListing so sold/cancelled show "Not listed" */}
+        <ListingInfo listing={activeListing} isSeller={isSeller} />
       </div>
     </div>
   );
@@ -209,24 +228,23 @@ export default NFTCard;
 // // ── Props ────────────────────────────────────────────────────────────────────
 
 // interface NFTCardProps {
-//   image:        string;
-//   title:        string;
-//   creatorImage?: string;
-//   creatorName:  string;
-//   owner?:       string;       // wallet address of current owner
-//   listing?:     Listing | null; // active listing if any
+//   image:            string;
+//   title:            string;
+//   creatorImage?:    string;
+//   creatorName:      string;
+//   owner?:           string;
+//   listing?:         Listing | null;
+//   category?:        string;
 //   backgroundColor?: string;
-//   onClick?:     () => void;
+//   onClick?:         () => void;
 // }
 
-// // ── Countdown hook ───────────────────────────────────────────────────────────
+// // ── Countdown hook ────────────────────────────────────────────────────────────
 
 // function useCountdown(endTime?: string): string {
 //   const [timeLeft, setTimeLeft] = useState('');
-
 //   useEffect(() => {
 //     if (!endTime) return;
-
 //     const calc = () => {
 //       const diff = new Date(endTime).getTime() - Date.now();
 //       if (diff <= 0) { setTimeLeft('Ended'); return; }
@@ -240,16 +258,14 @@ export default NFTCard;
 //         setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} left`);
 //       }
 //     };
-
 //     calc();
 //     const interval = setInterval(calc, 1000);
 //     return () => clearInterval(interval);
 //   }, [endTime]);
-
 //   return timeLeft;
 // }
 
-// // ── Format wei to ETH ────────────────────────────────────────────────────────
+// // ── Wei to ETH ────────────────────────────────────────────────────────────────
 
 // function toEth(wei?: string): string {
 //   if (!wei || wei === '0') return '—';
@@ -257,12 +273,24 @@ export default NFTCard;
 //   catch { return '—'; }
 // }
 
-// // ── Card bottom section based on listing state ────────────────────────────────
+// // ── Format category label ─────────────────────────────────────────────────────
 
-// function ListingInfo({ listing }: { listing?: Listing | null }) {
+// function formatCategory(cat: string): string {
+//   return cat
+//     .replace(/_/g, ' ')
+//     .replace(/\b\w/g, c => c.toUpperCase());
+// }
+
+// // ── Listing info section ──────────────────────────────────────────────────────
+
+// interface ListingInfoProps {
+//   listing?:    Listing | null;
+//   isSeller:    boolean;
+// }
+
+// function ListingInfo({ listing, isSeller }: ListingInfoProps) {
 //   const timeLeft = useCountdown(listing?.endTime);
 
-//   // Not listed
 //   if (!listing) {
 //     return (
 //       <div className="flex justify-between items-center mt-3">
@@ -274,7 +302,6 @@ export default NFTCard;
 //     );
 //   }
 
-//   // Fixed price
 //   if (listing.type === 'fixed') {
 //     return (
 //       <div className="flex justify-between items-center mt-3">
@@ -286,9 +313,16 @@ export default NFTCard;
 //             {toEth(listing.price)}
 //           </p>
 //         </div>
-//         <div className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">
-//           Buy Now
-//         </div>
+//         {isSeller ? (
+//           // Seller sees a neutral "Listed" badge instead of "Buy Now"
+//           <div className="bg-muted/20 text-muted text-xs font-medium px-2.5 py-1 rounded-full">
+//             Listed
+//           </div>
+//         ) : (
+//           <div className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">
+//             Buy Now
+//           </div>
+//         )}
 //       </div>
 //     );
 //   }
@@ -298,7 +332,8 @@ export default NFTCard;
 //     <div className="flex justify-between items-center mt-3">
 //       <div>
 //         <span className="text-muted text-xs flex items-center gap-1">
-//           <Gavel size={11} /> Highest Bid
+//           <Gavel size={11} />
+//           {isSeller ? 'Your Auction' : 'Highest Bid'}
 //         </span>
 //         <p className="text-main text-lg font-semibold leading-tight mt-0.5">
 //           {toEth(listing.highestBid) !== '—' ? toEth(listing.highestBid) : toEth(listing.price)}
@@ -323,18 +358,21 @@ export default NFTCard;
 //   creatorName,
 //   owner,
 //   listing,
+//   category,
 //   backgroundColor,
 //   onClick,
 // }) => {
 //   const { address } = useAccount();
-//   const isOwner = !!(address && owner && address.toLowerCase() === owner.toLowerCase());
+
+//   const isOwner  = !!(address && owner   && address.toLowerCase() === owner.toLowerCase());
+//   const isSeller = !!(address && listing?.seller && address.toLowerCase() === listing.seller.toLowerCase());
 
 //   return (
 //     <div
 //       className={`${backgroundColor || 'bg-surface'} rounded-[20px] group transition-all duration-300 hover:shadow-xl cursor-pointer border border-muted hover:border-primary/40 relative`}
 //       onClick={onClick}
 //     >
-//       {/* Own badge */}
+//       {/* Owned badge */}
 //       {isOwner && (
 //         <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
 //           <User size={11} />
@@ -361,6 +399,13 @@ export default NFTCard;
 //           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
 //           onError={(e) => { (e.target as HTMLImageElement).src = '/nft-placeholder.png'; }}
 //         />
+
+//         {/* Category pill */}
+//         {category && (
+//           <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
+//             {formatCategory(category)}
+//           </div>
+//         )}
 //       </div>
 
 //       {/* Content */}
@@ -379,7 +424,7 @@ export default NFTCard;
 //         </div>
 
 //         {/* Listing info */}
-//         <ListingInfo listing={listing} />
+//         <ListingInfo listing={listing} isSeller={isSeller} />
 //       </div>
 //     </div>
 //   );

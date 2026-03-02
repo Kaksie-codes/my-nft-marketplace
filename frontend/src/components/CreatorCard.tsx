@@ -1,16 +1,37 @@
 import { User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAccount } from 'wagmi';
 import { resolveIpfsUrl } from '../utils/ipfs';
 
 interface CreatorCardProps {
   rank:      number;
+  address:   string;
   image?:    string;
   name:      string;
   nftCount:  number;
 }
 
-const CreatorCard: React.FC<CreatorCardProps> = ({ rank, image, name, nftCount }) => {
+const CreatorCard: React.FC<CreatorCardProps> = ({ rank, address, image, name, nftCount }) => {
+  const navigate = useNavigate();
+  const { address: connectedAddress } = useAccount();
+
+  const isOwnProfile =
+    !!connectedAddress &&
+    connectedAddress.toLowerCase() === address.toLowerCase();
+
+  const handleClick = () => {
+    if (isOwnProfile) {
+      navigate(`/dashboard/profile/${address}`);
+    } else {
+      navigate(`/profile/${address}`);
+    }
+  };
+
   return (
-    <div className="bg-surface group border shadow-lg border-transparent rounded-[10px] p-4 relative grid place-items-center transition-all duration-300 hover:shadow-xl cursor-pointer hover:bg-background hover:border-surface">
+    <div
+      onClick={handleClick}
+      className="bg-surface group border shadow-lg border-transparent rounded-[10px] p-4 relative grid place-items-center transition-all duration-300 hover:shadow-xl cursor-pointer hover:bg-background hover:border-surface"
+    >
       {/* Rank badge */}
       <div className="h-7 w-7 absolute top-4 left-4 rounded-full bg-background text-main text-sm flex items-center justify-center font-semibold group-hover:bg-surface">
         {rank}
@@ -46,31 +67,3 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ rank, image, name, nftCount }
 };
 
 export default CreatorCard;
-
-
-
-
-
-// interface CreatorCardProps {
-//   rank: number;
-//   image: string;
-//   name: string;
-//   sales: string;
-// }
-
-
-// const CreatorCard: React.FC<CreatorCardProps> = ({ rank, image, name, sales }) => {
-//   return (
-//   <div className="bg-surface group border shadow-lg border-transparent rounded-[10px] p-4 relative grid place-items-center transition-all duration-300 hover:shadow-xl group cursor-pointer hover:bg-background hover:border-surface">
-//       <div className="h-7 w-7 absolute top-4 left-4 rounded-full bg-background text-main flex items-center justify-center group-hover:bg-surface">{rank}</div>
-//       <img src={image} alt={name} className="rounded-full w-[150px] h-[150px] transition-transform duration-300 group-hover:-translate-y-2" />
-//       <h3 className="text-lg font-semibold text-main">{name}</h3>
-//       <div className="flex gap-3">
-//           <span className="text-sm text-muted">Total Sales:</span>
-//           <span className="text-sm text-main">{sales}</span>
-//       </div>
-//     </div>
-//   )
-// }
-
-// export default CreatorCard

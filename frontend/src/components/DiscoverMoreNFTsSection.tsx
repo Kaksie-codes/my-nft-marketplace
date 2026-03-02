@@ -111,7 +111,7 @@ const DiscoverMoreNFTsSection = () => {
                 creatorImage={getCreatorImage(nft)}
                 creatorName={getCreatorName(nft)}
                 owner={nft.owner}
-                listing={null}
+                listing={nft.activeListing ?? null}
                 onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}
               />
             ))}

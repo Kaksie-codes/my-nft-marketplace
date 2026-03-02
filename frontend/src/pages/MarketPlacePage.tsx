@@ -22,7 +22,7 @@ const CATEGORIES = [
   { label: 'Other',          value: 'other'          },
 ];
 
-const ITEMS_PER_PAGE = 24;
+const ITEMS_PER_PAGE = 6;
 
 // ── Skeletons ─────────────────────────────────────────────────────────────────
 
@@ -381,7 +381,7 @@ const MarketPlacePage = () => {
                             creatorImage={getNFTCreatorImg(nft)}
                             creatorName={getNFTCreatorName(nft)}
                             owner={nft.owner}
-                            listing={null}
+                            listing={nft.activeListing ?? null}
                             category={nft.category}
                             backgroundColor="bg-background"
                             onClick={() => navigate(`/nft/${nft.collection}/${nft.tokenId}`)}

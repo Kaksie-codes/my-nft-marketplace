@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { User } from '../models/user.model';
 import { NFT } from '../models/nft.model';
+import { Listing } from '../models/listing.model';
 import { Activity } from '../models/activity.model';
 import { qs } from '../utils';
 import {
@@ -56,14 +57,11 @@ router.put('/profile', async (req: Request, res: Response): Promise<void> => {
 });
 
 // ── GET /api/users/top-creators ──────────────────────────────────────────────
-// IMPORTANT: Must be defined BEFORE /:address to avoid Express matching
-// "top-creators" as a wallet address parameter.
-// Supports ?limit=50&period=24h|7d|30d (omit period for all-time)
+// IMPORTANT: Must be defined BEFORE /:address routes
 router.get('/top-creators', async (req: Request, res: Response): Promise<void> => {
-  const limit  = Math.min(50, parseInt(qs(req.query.limit)  ?? '8'));
-  const period = qs(req.query.period); // '24h' | '7d' | '30d' | undefined
+  const limit  = Math.min(50, parseInt(qs(req.query.limit) ?? '8'));
+  const period = qs(req.query.period);
 
-  // Build optional time filter based on period param
   const matchFilter: Record<string, unknown> = {};
   if (period === '24h') matchFilter.mintedAt = { $gte: new Date(Date.now() - 1  * 24 * 60 * 60 * 1000) };
   if (period === '7d')  matchFilter.mintedAt = { $gte: new Date(Date.now() - 7  * 24 * 60 * 60 * 1000) };
@@ -77,16 +75,10 @@ router.get('/top-creators', async (req: Request, res: Response): Promise<void> =
       { $limit: limit },
     ]);
 
-    // Enrich with username and avatar from users collection
     const results = await Promise.all(
       topMinters.map(async ({ _id: address, nftCount }: { _id: string; nftCount: number }) => {
         const user = await User.findOne({ address });
-        return {
-          address,
-          nftCount,
-          username: user?.username ?? null,
-          avatar:   user?.avatar   ?? null,
-        };
+        return { address, nftCount, username: user?.username ?? null, avatar: user?.avatar ?? null };
       })
     );
 
@@ -111,16 +103,80 @@ router.get('/:address', async (req: Request<{ address: string }>, res: Response)
 
 // ── GET /api/users/:address/nfts ─────────────────────────────────────────────
 router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
-  const address = req.params.address.toLowerCase();
-  const page    = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
-  const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
-  const skip    = (page - 1) * limit;
+  const address  = req.params.address.toLowerCase();
+  const page     = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
+  const limit    = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
+  const skip     = (page - 1) * limit;
+  const filter   = qs(req.query.filter)   ?? 'owned';
+  const category = qs(req.query.category);
+  const marketplaceAddr = (process.env.MARKETPLACE_CONTRACT_ADDRESS || '').toLowerCase();
+
+  let mongoFilter: Record<string, unknown>;
+
+  if (filter === 'created') {
+    mongoFilter = { minter: address };
+  } else if (filter === 'all') {
+    mongoFilter = { $or: [{ owner: address }, { minter: address }] };
+  } else {
+    if (marketplaceAddr) {
+      const activeListings = await Listing.find(
+        { seller: address, status: 'active' },
+        { collection: 1, tokenId: 1 }
+      ).lean();
+
+      if (activeListings.length > 0) {
+        const listedConditions = activeListings.map(l => ({
+          collection: l.collection,
+          tokenId:    l.tokenId,
+          owner:      marketplaceAddr,
+        }));
+        mongoFilter = { $or: [{ owner: address }, ...listedConditions] };
+      } else {
+        mongoFilter = { owner: address };
+      }
+    } else {
+      mongoFilter = { owner: address };
+    }
+  }
+
+  let finalFilter: Record<string, unknown>;
+  if (category && '$or' in mongoFilter) {
+    finalFilter = { $and: [mongoFilter, { category }] };
+  } else if (category) {
+    finalFilter = { ...mongoFilter, category };
+  } else {
+    finalFilter = mongoFilter;
+  }
 
   try {
     const [nfts, total] = await Promise.all([
-      NFT.find({ owner: address }).sort({ mintedAt: -1 }).skip(skip).limit(limit),
-      NFT.countDocuments({ owner: address }),
+      NFT.find(finalFilter).sort({ mintedAt: -1 }).skip(skip).limit(limit).lean(),
+      NFT.countDocuments(finalFilter),
     ]);
+
+    // ── Attach active listing to each NFT ────────────────────────────────────
+    // Build a lookup key "collection:tokenId" → listing for O(1) access.
+    // One bulk query replaces N individual queries.
+    if (nfts.length > 0) {
+      const conditions = nfts.map(n => ({ collection: n.collection, tokenId: n.tokenId }));
+      const activeListings = await Listing.find({
+        status: 'active',
+        $or: conditions,
+      }).lean();
+
+      const listingMap = new Map<string, typeof activeListings[0]>();
+      for (const listing of activeListings) {
+        listingMap.set(`${listing.collection}:${listing.tokenId}`, listing);
+      }
+
+      const nftsWithListings = nfts.map(nft => ({
+        ...nft,
+        activeListing: listingMap.get(`${nft.collection}:${nft.tokenId}`) ?? null,
+      }));
+
+      return void sendPaginated(res, nftsWithListings, total, page, limit);
+    }
+
     sendPaginated(res, nfts, total, page, limit);
   } catch (err) {
     sendServerError(res, err, `GET /users/${address}/nfts`);
@@ -134,12 +190,12 @@ router.get('/:address/activity', async (req: Request<{ address: string }>, res: 
   const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
   const skip    = (page - 1) * limit;
 
-  const filter = { $or: [{ from: address }, { to: address }] };
+  const activityFilter = { $or: [{ from: address }, { to: address }] };
 
   try {
     const [activity, total] = await Promise.all([
-      Activity.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit),
-      Activity.countDocuments(filter),
+      Activity.find(activityFilter).sort({ timestamp: -1 }).skip(skip).limit(limit),
+      Activity.countDocuments(activityFilter),
     ]);
     sendPaginated(res, activity, total, page, limit);
   } catch (err) {
@@ -211,28 +267,28 @@ export default router;
 // });
 
 // // ── GET /api/users/top-creators ──────────────────────────────────────────────
-// // IMPORTANT: Must be defined BEFORE /:address to avoid Express matching
-// // "top-creators" as a wallet address parameter.
-// // Returns top 8 creators ranked by number of NFTs minted.
-// router.get('/top-creators', async (_req: Request, res: Response): Promise<void> => {
+// // IMPORTANT: Must be defined BEFORE /:address routes
+// router.get('/top-creators', async (req: Request, res: Response): Promise<void> => {
+//   const limit  = Math.min(50, parseInt(qs(req.query.limit) ?? '8'));
+//   const period = qs(req.query.period);
+
+//   const matchFilter: Record<string, unknown> = {};
+//   if (period === '24h') matchFilter.mintedAt = { $gte: new Date(Date.now() - 1  * 24 * 60 * 60 * 1000) };
+//   if (period === '7d')  matchFilter.mintedAt = { $gte: new Date(Date.now() - 7  * 24 * 60 * 60 * 1000) };
+//   if (period === '30d') matchFilter.mintedAt = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+
 //   try {
-//     // Aggregate NFTs grouped by minter, count descending, top 8
 //     const topMinters = await NFT.aggregate([
+//       { $match: matchFilter },
 //       { $group: { _id: '$minter', nftCount: { $sum: 1 } } },
 //       { $sort:  { nftCount: -1 } },
-//       { $limit: 8 },
+//       { $limit: limit },
 //     ]);
 
-//     // Enrich each result with username and avatar from the users collection
 //     const results = await Promise.all(
 //       topMinters.map(async ({ _id: address, nftCount }: { _id: string; nftCount: number }) => {
 //         const user = await User.findOne({ address });
-//         return {
-//           address,
-//           nftCount,
-//           username: user?.username  ?? null,
-//           avatar:   user?.avatar    ?? null,
-//         };
+//         return { address, nftCount, username: user?.username ?? null, avatar: user?.avatar ?? null };
 //       })
 //     );
 
@@ -256,16 +312,30 @@ export default router;
 // });
 
 // // ── GET /api/users/:address/nfts ─────────────────────────────────────────────
+// // ?filter=owned  → NFTs where owner === address             (default)
+// // ?filter=created → NFTs where minter === address           (survives sales)
+// // ?filter=all    → NFTs where owner === OR minter === address
 // router.get('/:address/nfts', async (req: Request<{ address: string }>, res: Response): Promise<void> => {
 //   const address = req.params.address.toLowerCase();
 //   const page    = Math.max(1, parseInt(qs(req.query.page)   ?? '1'));
 //   const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
 //   const skip    = (page - 1) * limit;
+//   const filter  = qs(req.query.filter) ?? 'owned';
+
+//   let mongoFilter: Record<string, unknown>;
+//   if (filter === 'created') {
+//     mongoFilter = { minter: address };
+//   } else if (filter === 'all') {
+//     mongoFilter = { $or: [{ owner: address }, { minter: address }] };
+//   } else {
+//     // Default: 'owned'
+//     mongoFilter = { owner: address };
+//   }
 
 //   try {
 //     const [nfts, total] = await Promise.all([
-//       NFT.find({ owner: address }).sort({ mintedAt: -1 }).skip(skip).limit(limit),
-//       NFT.countDocuments({ owner: address }),
+//       NFT.find(mongoFilter).sort({ mintedAt: -1 }).skip(skip).limit(limit),
+//       NFT.countDocuments(mongoFilter),
 //     ]);
 //     sendPaginated(res, nfts, total, page, limit);
 //   } catch (err) {
@@ -280,12 +350,12 @@ export default router;
 //   const limit   = Math.min(100, parseInt(qs(req.query.limit) ?? '20'));
 //   const skip    = (page - 1) * limit;
 
-//   const filter = { $or: [{ from: address }, { to: address }] };
+//   const activityFilter = { $or: [{ from: address }, { to: address }] };
 
 //   try {
 //     const [activity, total] = await Promise.all([
-//       Activity.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit),
-//       Activity.countDocuments(filter),
+//       Activity.find(activityFilter).sort({ timestamp: -1 }).skip(skip).limit(limit),
+//       Activity.countDocuments(activityFilter),
 //     ]);
 //     sendPaginated(res, activity, total, page, limit);
 //   } catch (err) {

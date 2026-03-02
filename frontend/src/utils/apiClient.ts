@@ -91,11 +91,11 @@ async function requestPaginated<T>(
 
 // ── Convenience methods ──────────────────────────────────────────────────────
 export const api = {
-  get: <T>(endpoint: string) =>
-    request<T>(endpoint, { method: 'GET' }),
+  get: <T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { method: 'GET', ...options }),
 
-  getPaginated: <T>(endpoint: string) =>
-    requestPaginated<T>(endpoint, { method: 'GET' }),
+  getPaginated: <T>(endpoint: string, options?: RequestInit) =>
+    requestPaginated<T>(endpoint, { method: 'GET', ...options }),
 
   post: <T>(endpoint: string, body: unknown) =>
     request<T>(endpoint, {
@@ -134,6 +134,8 @@ export type NFT = {
   category: string;
   metadata?: Record<string, unknown>;
   mintedAt: string;
+  listing?: Listing | null;
+  activeListing?: Listing | null;
 };
 
 export type Collection = {
@@ -146,6 +148,8 @@ export type Collection = {
   maxPerWallet: string;
   mintPrice: string;
   nftCount?: number;
+  publicMintEnabled?: boolean;
+  collaborators?: string[];
   createdAt: string;
 };
 
@@ -196,16 +200,36 @@ export const usersApi = {
   getProfile:  (address: string) =>
     api.get<UserProfile>(`/api/users/${address}`),
 
-  getNFTs:     (address: string, page = 1, limit = 20) =>
-    api.getPaginated<NFT>(`/api/users/${address}/nfts?page=${page}&limit=${limit}`),
+  // filter='all' returns NFTs where owner OR minter === address,
+  // so sold NFTs still appear under "Created" on the profile page.
+  // Optional category param enables server-side filtering by category.
+  getNFTs: (
+    address:   string,
+    page      = 1,
+    limit     = 20,
+    filter:    'owned' | 'created' | 'all' = 'owned',
+    category?: string,
+  ) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), filter });
+    if (category) params.set('category', category);
+    return api.getPaginated<NFT>(`/api/users/${address}/nfts?${params}`);
+  },
 
   getActivity: (address: string, page = 1, limit = 20) =>
     api.getPaginated<Activity>(`/api/users/${address}/activity?page=${page}&limit=${limit}`),
+
+  getTopCreators: (limit = 8, period?: string) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (period) params.append('period', period);
+    return api.get<{ address: string; nftCount: number; username?: string | null; avatar?: string | null }[]>(
+      `/api/users/top-creators?${params}`
+    );
+  },
 };
 
 // Collections
 export const collectionsApi = {
-  getAll:    (params?: { creator?: string; page?: number; limit?: number }) => {
+  getAll:    (params?: { creator?: string; collaborator?: string; visibility?: 'public'; page?: number; limit?: number }) => {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     return api.getPaginated<Collection>(`/api/collections${query ? `?${query}` : ''}`);
   },
@@ -225,7 +249,7 @@ export const nftsApi = {
     api.getPaginated<NFT>(`/api/nfts/category/${category}?page=${page}&limit=${limit}`),
 
   getAll: (page = 1, limit = 20) =>
-  api.getPaginated<NFT>(`/api/nfts?page=${page}&limit=${limit}`),
+    api.getPaginated<NFT>(`/api/nfts?page=${page}&limit=${limit}`),
 };
 
 // Listings
@@ -250,4 +274,38 @@ export const activityApi = {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     return api.getPaginated<Activity>(`/api/activity${query ? `?${query}` : ''}`);
   },
+};
+
+// Admin (owner-only)
+const adminHeaders = (address: string): RequestInit => ({
+  headers: { 'x-caller-address': address },
+});
+
+export const adminApi = {
+  getStats: (address: string) =>
+    api.get<{
+      totalNFTs:           number;
+      totalCollections:    number;
+      totalUsers:          number;
+      totalActiveListings: number;
+      totalSales:          number;
+      totalVolumeEth:      string;
+      totalFeesEth:        string;
+      fixedListings:       number;
+      auctionListings:     number;
+      salesOverTime:       { _id: string; count: number; volume: number }[];
+      mintsOverTime:       { _id: string; count: number }[];
+    }>('/api/admin/stats', adminHeaders(address)),
+
+  getListings: (address: string, status = 'active', page = 1, limit = 12) =>
+    api.getPaginated<Listing>(
+      `/api/admin/listings?status=${status}&page=${page}&limit=${limit}`,
+      adminHeaders(address)
+    ),
+
+  getRefunds: (address: string, page = 1, limit = 12) =>
+    api.getPaginated<Listing>(
+      `/api/admin/refunds?page=${page}&limit=${limit}`,
+      adminHeaders(address)
+    ),
 };
