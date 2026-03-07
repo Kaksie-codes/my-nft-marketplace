@@ -16,7 +16,7 @@
     "@types/express": "^5.0.6",
     "@types/form-data": "^2.2.1",
     "@types/multer": "^2.1.0",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.3.5",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
