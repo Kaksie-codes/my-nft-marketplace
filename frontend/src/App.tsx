@@ -24,7 +24,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   // Watches wagmi's useAccount and automatically syncs wallet
-  // connect/disconnect to the backend and UserContext
+  // connect/disconnect to the backend and UserContext    
   useUserSync();
 
   return (
