@@ -23,14 +23,23 @@ const PORT = process.env.PORT || 4000;
 //   origin:      process.env.CLIENT_URL || 'http://localhost:5173',
 //   credentials: true,
 // }));
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://my-nft-marketplace-j1gh.vercel.app',
-    'https://production-nft-marketplace.tyzo.nodeops.app',
-  ],
+  origin: true,
   credentials: true,
 }));
+
+app.options('*', cors());
+
+// app.use(cors({
+//   origin: [
+//     'http://localhost:5173',
+//     'https://my-nft-marketplace-j1gh.vercel.app',
+//     'https://production-nft-marketplace.tyzo.nodeops.app',
+//   ],
+//   credentials: true,
+// }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
