@@ -61,9 +61,9 @@ const TopCreatorsSection = () => {
           <div className="mt-[40px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[20px]">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="bg-surface rounded-[10px] p-4 grid place-items-center gap-3 animate-pulse">
-                <div className="w-[100px] h-[100px] rounded-full bg-muted/20" />
-                <div className="h-4 w-24 bg-muted/20 rounded" />
-                <div className="h-3 w-32 bg-muted/20 rounded" />
+                <div className="w-[100px] h-[100px] rounded-full bg-muted" />
+                <div className="h-4 w-24 bg-muted rounded" />
+                <div className="h-3 w-32 bg-muted rounded" />
               </div>
             ))}
           </div>
