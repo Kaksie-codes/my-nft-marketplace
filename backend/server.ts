@@ -29,7 +29,8 @@ app.use(cors({
   credentials: true,
 }));
 
-app.options('*', cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // app.use(cors({
 //   origin: [
@@ -40,8 +41,8 @@ app.options('*', cors());
 //   credentials: true,
 // }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
 
 // ── Request logger ───────────────────────────────────────────────────────────
 // Logs every request with method, path, status code and response time.
