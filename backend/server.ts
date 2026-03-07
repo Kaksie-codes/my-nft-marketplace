@@ -26,7 +26,8 @@ const PORT = process.env.PORT || 4000;
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://my-nft-marketplace-j1gh.vercel.app'
+    'https://my-nft-marketplace-j1gh.vercel.app',
+    'https://production-nft-marketplace.tyzo.nodeops.app',
   ],
   credentials: true,
 }));
