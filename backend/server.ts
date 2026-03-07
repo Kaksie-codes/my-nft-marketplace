@@ -13,6 +13,7 @@ import listingRoutes    from './routes/listings.route';
 import activityRoutes   from './routes/activity.route';
 import newsletterRoutes   from './routes/newsletter.route';
 import adminRoutes from './routes/admin.route';
+import uploadRoutes from './routes/upload.route';
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
@@ -49,6 +50,7 @@ app.use('/api/listings',    listingRoutes);
 app.use('/api/activity',    activityRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ success: false, error: 'Not found' }));
