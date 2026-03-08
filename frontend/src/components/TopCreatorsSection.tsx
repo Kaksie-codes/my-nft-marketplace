@@ -49,7 +49,7 @@ const TopCreatorsSection = () => {
               Checkout Top Rated Creators on the NFT Marketplace.
             </p>
           </div>
-          <Link to="/dashboard/rankings">
+          <Link to="/rankings">
             <Button variant="outline" sxclass="px-4" size="sm" icon={<Trophy size={16} />}>
               View Rankings
             </Button>
