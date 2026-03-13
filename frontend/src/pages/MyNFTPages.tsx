@@ -6,7 +6,7 @@ import {
   Wallet, LayoutGrid, Layers, X,
 } from 'lucide-react';
 import NFTCard from '../components/NFTCard';
-import RegularPageWrapper from '../components/RegularPageWrapper';
+// import RegularPageWrapper from '../components/RegularPageWrapper';
 import Button from '../components/button/Button';
 import { usersApi, type NFT, type UserProfile } from '../utils/apiClient';
 import { resolveIpfsUrl } from '../utils/ipfs';
@@ -174,7 +174,7 @@ const MyNFTsPage = () => {
 
   if (!isConnected) {
     return (
-      <RegularPageWrapper>
+      <>
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
             <Wallet size={28} className="text-primary" />
@@ -184,7 +184,7 @@ const MyNFTsPage = () => {
             Connect your wallet to see all the NFTs you own.
           </p>
         </div>
-      </RegularPageWrapper>
+      </>
     );
   }
 
