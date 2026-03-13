@@ -382,7 +382,7 @@ const CreateCollectionPage: React.FC = () => {
             <p className="text-muted text-sm mb-6 max-w-xs mx-auto">
               Deploy your first ERC-721 collection contract on Sepolia to start minting NFTs.
             </p>
-            <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
+            <Button variant="primary" sxclass='px-6' size="md" onClick={() => setShowModal(true)}>
               <Sparkles size={16} /> Create your first collection
             </Button>
           </div>

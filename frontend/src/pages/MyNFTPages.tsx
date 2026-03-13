@@ -259,11 +259,14 @@ const MyNFTsPage = () => {
                 Mint an NFT into one of your collections or a public collection to see it here.
               </p>
               <div className="flex gap-3 mt-2">
-                <Button variant="primary" size="md" sxclass="flex items-center gap-2"
+                <Button 
+                  variant="primary" 
+                  size="md" 
+                  sxclass="flex items-center gap-2 px-6"
                   onClick={() => navigate('/dashboard/create')}>
                   Mint an NFT
                 </Button>
-                <Button variant="outline" size="md" sxclass="flex items-center gap-2"
+                <Button variant="outline" size="md" sxclass="flex items-center gap-2 px-6"
                   onClick={() => navigate('/dashboard/collections/create')}>
                   <Layers size={15} /> New Collection
                 </Button>
